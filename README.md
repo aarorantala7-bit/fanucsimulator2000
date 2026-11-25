@@ -1,1 +1,32 @@
-# fanucsimulator2000
+# FANUC Simulator 2000
+
+Independent, browser-based educational visualization prototype. Development baseline: **v0.13**. Not affiliated with FANUC.
+
+## Run
+
+Download or clone the repository, then open `index.html` in a modern browser. No dependencies or machine connection are required. If local-file loading is restricted, serve the folder with a local static web server.
+
+The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings.
+
+## Project layout
+
+- `src/state.js`: shared application state.
+- `src/simulation/`: virtual program interpretation and stock visualization.
+- `src/macros/`: simulation-only macro expansion.
+- `src/tools/`: editable virtual tool geometry.
+- `src/renderer/`: CPU, GPU and viewport drawing.
+- `src/ui/`: menus, controls, HUD and styles.
+- `assets/`: project logo.
+- `tests/`: dependency-free source checks.
+
+These are ordered classic JavaScript scripts with shared state, not independent ES modules yet. This preserves the original offline prototype's behavior during the initial split.
+
+Run `npm test` with Node.js installed to check syntax and source references. Run `npm run build` to generate a self-contained HTML preview in `dist/`.
+
+## Development
+
+Keep `main` as the testable baseline. Use `develop` and feature branches for changes, then review them in pull requests. Priorities: expanded virtual tool presets, hardware GPU verification, improved visual contour reconstruction, and eventual standalone packaging.
+
+## Limitations
+
+Educational visualization only. No machine control, safety or collision validation, certified tool data, native Macro B execution, or machining verification. The approximate heightfield geometry is not a CAD solid. The GPU path needs hardware testing; CPU fallback remains available.

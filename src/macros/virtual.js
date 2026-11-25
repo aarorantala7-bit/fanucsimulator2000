@@ -1,0 +1,14 @@
+'use strict';
+function expandVirtual(src){const lines=src.split(/\r?\n/),out=[],trace=[],notes=[],vars=Object.create(null),loops=[];let budget=0;const fail=(n,msg)=>{throw new Error('Line '+(n+1)+': '+msg);};const num=(v,n)=>{v=v.trim();if(/^\$[A-Z][A-Z0-9_]*$/i.test(v)){const k=v.slice(1).toUpperCase();if(!(k in vars))fail(n,'Unknown virtual variable '+k);return vars[k];}if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(v))fail(n,'Expected number or $VARIABLE');const x=Number(v);if(!Number.isFinite(x)||Math.abs(x)>1000000)fail(n,'Virtual value out of range');return x;};const directive=line=>line.match(/^\s*\(SIM:\s*(SET|ADD|REPEAT|END)\b(.*?)\)\s*$/i);try{for(let i=0;i<lines.length;i++){if(++budget>20000||out.length>=12000)fail(i,'Virtual expansion limit reached');const raw=lines[i],m=directive(raw);if(m){const cmd=m[1].toUpperCase(),arg=m[2].trim();if(cmd==='SET'||cmd==='ADD'){const a=arg.match(/^([A-Z][A-Z0-9_]{0,23})\s+(.+)$/i);if(!a)fail(i,'Expected variable name and value');const k=a[1].toUpperCase();if(cmd==='ADD'&&!(k in vars))fail(i,'Unknown virtual variable '+k);const v=(cmd==='ADD'?vars[k]:0)+num(a[2],i);if(Math.abs(v)>1000000)fail(i,'Virtual value out of range');vars[k]=v;}else if(cmd==='REPEAT'){const n=num(arg,i);if(!Number.isInteger(n)||n<1||n>100||loops.length>=5)fail(i,'Repeat limit: 1–100, nesting up to 5');loops.push({start:i,total:n,iteration:1});}else{if(arg||!loops.length)fail(i,'Unexpected END');const l=loops[loops.length-1];if(l.iteration<l.total){l.iteration++;i=l.start;}else loops.pop();}continue;}const sim=raw.match(/^\s*\(SIM:(.*?)\)\s*$/i);if(!sim&&/(?:#\d|#\[|\b(?:WHILE|END\d|GOTO|IF)\b|G\s*65\b)/i.test(raw.replace(/\([^()]*\)/g,'')))fail(i,'Native machine macro not evaluated in virtual viewer');let expanded=raw;if(sim)expanded=raw.replace(/\$[A-Z][A-Z0-9_]*/gi,v=>String(num(v,i)));out.push(expanded);trace.push({line:i+1,expanded,vars:{...vars},loops:loops.map(l=>`${l.iteration} / ${l.total} (line ${l.start+1})`)});}if(loops.length)fail(lines.length-1,'Unclosed virtual REPEAT');}catch(e){notes.push(e.message);}return {src:out.join('\n'),trace,notes};}
+const macroDemo=`(SIM: SET LEVEL 1)
+(SIM: REPEAT 3)
+(SIM: G90)
+(SIM: G0 X-12 Y-12 Z5)
+(SIM: G1 Z-$LEVEL)
+(SIM: G1 X12 Y-12)
+(SIM: G1 X12 Y12)
+(SIM: G1 X-12 Y12)
+(SIM: G1 X-12 Y-12)
+(SIM: G0 Z5)
+(SIM: ADD LEVEL 1)
+(SIM: END)`;
