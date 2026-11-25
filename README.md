@@ -1,12 +1,12 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.13**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.14**. Not affiliated with FANUC.
 
 ## Run
 
 Download or clone the repository, then open `index.html` in a modern browser. No dependencies or machine connection are required. If local-file loading is restricted, serve the folder with a local static web server.
 
-The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings.
+The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings. The startup program demo uses ordinary unwrapped viewer input; the separate macro demo retains virtual-only directives. The tool library includes 42 editable visual presets with manufacturer, category and family selectors. Family labels are catalog-inspired; geometry is synthetic and not certified manufacturer data.
 
 ## Project layout
 
@@ -25,7 +25,7 @@ Run `npm test` with Node.js installed to check syntax and source references. Run
 
 ## Development
 
-Keep `main` as the testable baseline. Use `develop` and feature branches for changes, then review them in pull requests. Priorities: expanded virtual tool presets, hardware GPU verification, improved visual contour reconstruction, and eventual standalone packaging.
+Keep `main` as the testable baseline. Use `develop` and feature branches for changes, then review them in pull requests. Priorities: hardware GPU verification, improved visual contour reconstruction, and eventual standalone packaging.
 
 ## Limitations
 

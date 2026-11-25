@@ -7,7 +7,7 @@ function cut(sample){
   if(s.rapid||!t||Math.min(a.z,b.z)>=0)return;
   const r=t.width/2,rr=r*r,st=stock,vx=b.x-a.x,vy=b.y-a.y,vz=b.z-a.z,ll=vx*vx+vy*vy;
   const loX=clamp(Math.floor((Math.min(a.x,b.x)-r-st.x0)/st.dx),0,st.nx-1),hiX=clamp(Math.floor((Math.max(a.x,b.x)+r-st.x0)/st.dx),0,st.nx-1),loY=clamp(Math.floor((Math.min(a.y,b.y)-r-st.y0)/st.dy),0,st.ny-1),hiY=clamp(Math.floor((Math.max(a.y,b.y)+r-st.y0)/st.dy),0,st.ny-1);
-  const profile=d2=>t.shape==='ball'?r-Math.sqrt(Math.max(0,rr-d2)):t.shape==='point'?Math.sqrt(d2)/r*t.tip:0;
+  const cr=clamp(t.corner||1,.0001,r), profile=d2=>t.shape==='ball'?r-Math.sqrt(Math.max(0,rr-d2)):t.shape==='point'?Math.sqrt(d2)/r*t.tip:t.shape==='round'?cr-Math.sqrt(Math.max(0,cr*cr-Math.max(0,Math.sqrt(d2)-(r-cr))**2)):0;
   for(let y=loY;y<=hiY;y++)for(let x=loX;x<=hiX;x++){
     const px=st.x0+(x+.5)*st.dx-a.x,py=st.y0+(y+.5)*st.dy-a.y;
     let z;
