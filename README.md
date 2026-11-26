@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.42**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.43**. Not affiliated with FANUC.
 
 ## Run
 
@@ -41,6 +41,8 @@ Buffered editor commits now preserve simple word spacing across INSERT and INPUT
 The reference detail card now presents the code title and existing letter annotations rather than an isolated identifier. It remains a non-executable terminology reference.
 
 The reference example panel uses multi-line comment-only notation illustrations derived from existing address-letter annotations. It contains no machining sequence or machine settings.
+
+Reference cards distinguish terminology coverage, controller context and viewer compatibility. They explicitly mark required/optional address status and validated syntax as unestablished. G76 turning terminology is kept separate from the milling concept.
 
 ## Project layout
 

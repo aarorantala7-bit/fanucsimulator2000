@@ -85,21 +85,27 @@
  .keypad-entry[hidden]{display:none!important}.keypad-entry{flex:0 0 auto;margin:0;padding:7px 9px;background:#181e24;border-top:1px solid #49545d;gap:4px;color:#d6e4d9}.keypad-entry label{font:600 10px Segoe UI,sans-serif;color:#a7b6bd;letter-spacing:.7px}.keypad-input-line{display:flex;align-items:center;gap:6px;background:#10161a;border:1px solid #778881;padding:3px 7px;min-width:0}.keypad-input-line .buffer-prompt{color:#a1c9a4;font:14px monospace}.keypad-entry textarea{flex:1;min-width:0;width:auto;min-height:23px;height:23px;max-height:23px;resize:none;padding:2px 0;background:transparent;color:#d8f0dd;border:none;outline:none;white-space:pre;overflow-x:auto;font:13px/19px Consolas,monospace}.keypad-entry small{color:#b2c1b7;font-size:10px}.keypad-input-line #keypad-eob-mark{color:#f5d98a;font:600 15px monospace}.keypad-input-line #keypad-eob-mark[hidden]{display:none}
  `;document.head.append(style);syncMarkers();
 })();
-// Read-only notation illustration. Each line is a comment, never an instruction.
+// Reference coverage: terminology is not a controller syntax specification.
 const renderRefWordsBefore029=renderRefWords;
 renderRefWords=function(row,el){
  renderRefWordsBefore029(row,el);
  const box=el('example'),pre=box.querySelector('.ref-code-card'),labels=box.querySelectorAll('.ref-example-label');
- if(labels[0])labels[0].textContent='Notation example · comment-only';
+ if(labels[0])labels[0].textContent='Address reference and coverage';
  if(pre){
+  const panel=document.createElement('div');panel.className='ref-code-card';panel.style.cssText='white-space:normal;overflow-wrap:break-word;line-height:1.5';
+  const title=document.createElement('strong');title.textContent=row[0]+' — '+row[1];panel.append(title);
+  const add=(heading,value)=>{const p=document.createElement('p');p.style.cssText='margin:10px 0 0';const b=document.createElement('strong');b.textContent=heading+': ';p.append(b,document.createTextNode(value));panel.append(p);};
   const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
-  const comment=text=>'('+String(text).replace(/[()]/g,'').replace(/[\r\n]/g,' ')+')';
-  const lines=[comment(row[0]+' — '+row[1]),''];
-  for(const tr of terms)lines.push(comment(tr.cells[0].textContent+' : '+tr.cells[1].textContent));
-  if(!terms.length)lines.push(comment('No extra address letters documented'));
-  pre.textContent=lines.join('\n');
-  pre.style.whiteSpace='pre-wrap';pre.style.overflowWrap='normal';pre.style.wordBreak='normal';pre.style.overflowX='auto';
+  add('Address coverage',terms.length?terms.length+' letter annotations in this entry. See the table above.':'No additional letter annotations recorded; this is not evidence that no other letters are accepted.');
+  if(row[0]==='G76'){
+   add('Turning variant','The supplied G-Code Tutor screenshot describes a single-line turning variant. Its letter terminology appears in the table above.');
+   add('Milling variant','Fine-boring terminology only. The turning letter table does not establish the milling format.');
+  }else{add('Controller variants','The library does not establish a particular control generation or controller dialect for this entry.');}
+  add('Required / optional','Not established by the available reference data.');
+  add('Syntax coverage','No validated command format or executable example is included.');
+  pre.replaceWith(panel);
  }
- if(labels[1])labels[1].textContent='Each line is an isolated reference comment. No machining sequence or settings; not a controller syntax template.';
+ if(labels[1])labels[1].textContent='Terminology coverage is separate from offline viewer compatibility. This is not a programming or operating guide.';
 };
+document.querySelector('#ref-example').previousElementSibling.textContent='Reference context and coverage';
 document.getElementById('ref-query').dispatchEvent(new Event('input'));
