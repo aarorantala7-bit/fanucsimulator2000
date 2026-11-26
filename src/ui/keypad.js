@@ -85,27 +85,23 @@
  .keypad-entry[hidden]{display:none!important}.keypad-entry{flex:0 0 auto;margin:0;padding:7px 9px;background:#181e24;border-top:1px solid #49545d;gap:4px;color:#d6e4d9}.keypad-entry label{font:600 10px Segoe UI,sans-serif;color:#a7b6bd;letter-spacing:.7px}.keypad-input-line{display:flex;align-items:center;gap:6px;background:#10161a;border:1px solid #778881;padding:3px 7px;min-width:0}.keypad-input-line .buffer-prompt{color:#a1c9a4;font:14px monospace}.keypad-entry textarea{flex:1;min-width:0;width:auto;min-height:23px;height:23px;max-height:23px;resize:none;padding:2px 0;background:transparent;color:#d8f0dd;border:none;outline:none;white-space:pre;overflow-x:auto;font:13px/19px Consolas,monospace}.keypad-entry small{color:#b2c1b7;font-size:10px}.keypad-input-line #keypad-eob-mark{color:#f5d98a;font:600 15px monospace}.keypad-input-line #keypad-eob-mark[hidden]{display:none}
  `;document.head.append(style);syncMarkers();
 })();
-// Reference coverage: terminology is not a controller syntax specification.
+// Isolated visual notation, not a controller syntax template.
 const renderRefWordsBefore029=renderRefWords;
 renderRefWords=function(row,el){
  renderRefWordsBefore029(row,el);
  const box=el('example'),pre=box.querySelector('.ref-code-card'),labels=box.querySelectorAll('.ref-example-label');
- if(labels[0])labels[0].textContent='Address reference and coverage';
+ if(labels[0])labels[0].textContent='Notation illustration';
  if(pre){
-  const panel=document.createElement('div');panel.className='ref-code-card';panel.style.cssText='white-space:normal;overflow-wrap:break-word;line-height:1.5';
-  const title=document.createElement('strong');title.textContent=row[0]+' — '+row[1];panel.append(title);
-  const add=(heading,value)=>{const p=document.createElement('p');p.style.cssText='margin:10px 0 0';const b=document.createElement('strong');b.textContent=heading+': ';p.append(b,document.createTextNode(value));panel.append(p);};
   const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
-  add('Address coverage',terms.length?terms.length+' letter annotations in this entry. See the table above.':'No additional letter annotations recorded; this is not evidence that no other letters are accepted.');
+  const letters=[...new Set(terms.map(tr=>tr.cells[0].textContent.trim()).filter(k=>/^[A-Z]$/.test(k)&&k!==row[0][0]))];
+  pre.textContent=row[0]+(letters.length?'  │  '+letters.map(k=>k+'<?>').join('  ·  '):'');
+  pre.style.cssText='white-space:pre;overflow-x:auto;overflow-wrap:normal;word-break:normal;max-width:100%;box-sizing:border-box';
   if(row[0]==='G76'){
-   add('Turning variant','The supplied G-Code Tutor screenshot describes a single-line turning variant. Its letter terminology appears in the table above.');
-   add('Milling variant','Fine-boring terminology only. The turning letter table does not establish the milling format.');
-  }else{add('Controller variants','The library does not establish a particular control generation or controller dialect for this entry.');}
-  add('Required / optional','Not established by the available reference data.');
-  add('Syntax coverage','No validated command format or executable example is included.');
-  pre.replaceWith(panel);
+   const context=document.createElement('p');context.className='ref-context';context.textContent='Turning reference only (supplied screenshot). Milling G76 has a different meaning; milling addresses are not documented here.';pre.before(context);
+  }
+  if(!letters.length){const p=document.createElement('p');p.className='ref-context';p.textContent='No extra letters documented in this entry.';pre.after(p);}
  }
- if(labels[1])labels[1].textContent='Terminology coverage is separate from offline viewer compatibility. This is not a programming or operating guide.';
+ if(labels[1])labels[1].textContent='Visual notation only: <?> is a placeholder, and separators are not CNC syntax. Letter order, combinations and required/optional status are not validated.';
 };
-document.querySelector('#ref-example').previousElementSibling.textContent='Reference context and coverage';
+document.querySelector('#ref-example').previousElementSibling.textContent='Example and explanation';
 document.getElementById('ref-query').dispatchEvent(new Event('input'));

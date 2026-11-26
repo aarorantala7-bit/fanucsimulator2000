@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.43**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.44**. Not affiliated with FANUC.
 
 ## Run
 
@@ -43,6 +43,8 @@ The reference detail card now presents the code title and existing letter annota
 The reference example panel uses multi-line comment-only notation illustrations derived from existing address-letter annotations. It contains no machining sequence or machine settings.
 
 Reference cards distinguish terminology coverage, controller context and viewer compatibility. They explicitly mark required/optional address status and validated syntax as unestablished. G76 turning terminology is kept separate from the milling concept.
+
+Reference cards now display compact visual notation using the selected identifier and already documented address-letter labels. Separators and placeholders are non-executable; no controller syntax validation or additional machining settings are included.
 
 ## Project layout
 
