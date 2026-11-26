@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.40**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.41**. Not affiliated with FANUC.
 
 ## Run
 
@@ -37,6 +37,8 @@ The CNC Panel displays a persistent whole-word text cursor. Horizontal navigatio
 The empty CNC Panel cursor blinks once per second, while word highlights remain steady. The animation respects reduced-motion preferences.
 
 Buffered editor commits now preserve simple word spacing across INSERT and INPUT actions without adding indentation after EOB.
+
+The reference detail card now presents the code title and existing letter annotations rather than an isolated identifier. It remains a non-executable terminology reference.
 
 ## Project layout
 

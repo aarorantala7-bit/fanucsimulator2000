@@ -87,5 +87,19 @@
 })();
 // Use real identifiers as terminology, not invented CNC syntax.
 const renderRefWordsBefore029=renderRefWords;
-renderRefWords=function(row,el){renderRefWordsBefore029(row,el);const box=el('example');const pre=box.querySelector('.ref-code-card');if(pre)pre.textContent=row[0];const labels=box.querySelectorAll('.ref-example-label');if(labels[0])labels[0].textContent='Code identifier';if(labels[1])labels[1].textContent='Reference identifier only; not a complete program or validated controller syntax.';};
+renderRefWords=function(row,el){
+ renderRefWordsBefore029(row,el);
+ const box=el('example'),pre=box.querySelector('.ref-code-card'),labels=box.querySelectorAll('.ref-example-label');
+ if(labels[0])labels[0].textContent='Annotated reference';
+ if(pre){
+  const panel=document.createElement('div');panel.className='ref-code-card';panel.style.whiteSpace='normal';panel.style.overflowWrap='anywhere';
+  const title=document.createElement('strong');title.textContent=row[0]+' — '+row[1];panel.append(title);
+  const context=el('words').querySelector('.ref-context');
+  if(context){const p=document.createElement('div');p.style.cssText='margin-top:6px;color:#a9bfd1;font:12px/1.5 system-ui';p.textContent=context.textContent;panel.append(p);}
+  const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
+  if(terms.length){const dl=document.createElement('dl');dl.style.cssText='display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 12px;margin:12px 0 0;font:12px/1.5 system-ui';for(const tr of terms){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=tr.cells[0].textContent;dt.style.cssText='font:600 13px Consolas,monospace;color:#a9d4ff';dd.textContent=tr.cells[1].textContent;dd.style.margin='0';dl.append(dt,dd);}panel.append(dl);}else{const p=document.createElement('p');p.textContent='No extra letters documented in this entry.';panel.append(p);}
+  pre.replaceWith(panel);
+ }
+ if(labels[1])labels[1].textContent='Terminology only. No executable program, machine settings or validated syntax.';
+};
 document.getElementById('ref-query').dispatchEvent(new Event('input'));
