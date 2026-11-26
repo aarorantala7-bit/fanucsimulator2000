@@ -85,21 +85,21 @@
  .keypad-entry[hidden]{display:none!important}.keypad-entry{flex:0 0 auto;margin:0;padding:7px 9px;background:#181e24;border-top:1px solid #49545d;gap:4px;color:#d6e4d9}.keypad-entry label{font:600 10px Segoe UI,sans-serif;color:#a7b6bd;letter-spacing:.7px}.keypad-input-line{display:flex;align-items:center;gap:6px;background:#10161a;border:1px solid #778881;padding:3px 7px;min-width:0}.keypad-input-line .buffer-prompt{color:#a1c9a4;font:14px monospace}.keypad-entry textarea{flex:1;min-width:0;width:auto;min-height:23px;height:23px;max-height:23px;resize:none;padding:2px 0;background:transparent;color:#d8f0dd;border:none;outline:none;white-space:pre;overflow-x:auto;font:13px/19px Consolas,monospace}.keypad-entry small{color:#b2c1b7;font-size:10px}.keypad-input-line #keypad-eob-mark{color:#f5d98a;font:600 15px monospace}.keypad-input-line #keypad-eob-mark[hidden]{display:none}
  `;document.head.append(style);syncMarkers();
 })();
-// Use real identifiers as terminology, not invented CNC syntax.
+// Read-only notation illustration. Each line is a comment, never an instruction.
 const renderRefWordsBefore029=renderRefWords;
 renderRefWords=function(row,el){
  renderRefWordsBefore029(row,el);
  const box=el('example'),pre=box.querySelector('.ref-code-card'),labels=box.querySelectorAll('.ref-example-label');
- if(labels[0])labels[0].textContent='Annotated reference';
+ if(labels[0])labels[0].textContent='Notation example · comment-only';
  if(pre){
-  const panel=document.createElement('div');panel.className='ref-code-card';panel.style.whiteSpace='normal';panel.style.overflowWrap='anywhere';
-  const title=document.createElement('strong');title.textContent=row[0]+' — '+row[1];panel.append(title);
-  const context=el('words').querySelector('.ref-context');
-  if(context){const p=document.createElement('div');p.style.cssText='margin-top:6px;color:#a9bfd1;font:12px/1.5 system-ui';p.textContent=context.textContent;panel.append(p);}
   const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
-  if(terms.length){const dl=document.createElement('dl');dl.style.cssText='display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 12px;margin:12px 0 0;font:12px/1.5 system-ui';for(const tr of terms){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=tr.cells[0].textContent;dt.style.cssText='font:600 13px Consolas,monospace;color:#a9d4ff';dd.textContent=tr.cells[1].textContent;dd.style.margin='0';dl.append(dt,dd);}panel.append(dl);}else{const p=document.createElement('p');p.textContent='No extra letters documented in this entry.';panel.append(p);}
-  pre.replaceWith(panel);
+  const comment=text=>'('+String(text).replace(/[()]/g,'').replace(/[\r\n]/g,' ')+')';
+  const lines=[comment(row[0]+' — '+row[1]),''];
+  for(const tr of terms)lines.push(comment(tr.cells[0].textContent+' : '+tr.cells[1].textContent));
+  if(!terms.length)lines.push(comment('No extra address letters documented'));
+  pre.textContent=lines.join('\n');
+  pre.style.whiteSpace='pre-wrap';pre.style.overflowWrap='normal';pre.style.wordBreak='normal';pre.style.overflowX='auto';
  }
- if(labels[1])labels[1].textContent='Terminology only. No executable program, machine settings or validated syntax.';
+ if(labels[1])labels[1].textContent='Each line is an isolated reference comment. No machining sequence or settings; not a controller syntax template.';
 };
 document.getElementById('ref-query').dispatchEvent(new Event('input'));
