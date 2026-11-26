@@ -94,14 +94,14 @@ renderRefWords=function(row,el){
  if(pre){
   const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
   const letters=[...new Set(terms.map(tr=>tr.cells[0].textContent.trim()).filter(k=>/^[A-Z]$/.test(k)&&k!==row[0][0]))];
-  pre.textContent=row[0]+(letters.length?'  │  '+letters.map(k=>k+'<?>').join('  ·  '):'');
+  pre.textContent=row[0]+(letters.length?' '+letters.map(k=>k+'<value>').join(' '):'');
   pre.style.cssText='white-space:pre;overflow-x:auto;overflow-wrap:normal;word-break:normal;max-width:100%;box-sizing:border-box';
   if(row[0]==='G76'){
    const context=document.createElement('p');context.className='ref-context';context.textContent='Turning reference only (supplied screenshot). Milling G76 has a different meaning; milling addresses are not documented here.';pre.before(context);
   }
   if(!letters.length){const p=document.createElement('p');p.className='ref-context';p.textContent='No extra letters documented in this entry.';pre.after(p);}
  }
- if(labels[1])labels[1].textContent='Visual notation only: <?> is a placeholder, and separators are not CNC syntax. Letter order, combinations and required/optional status are not validated.';
+ if(labels[1])labels[1].textContent='Visual notation only: <value> represents a fictional placeholder, not a numeric machine setting. Letter order, combinations and required/optional status are not validated.';
 };
 document.querySelector('#ref-example').previousElementSibling.textContent='Example and explanation';
 document.getElementById('ref-query').dispatchEvent(new Event('input'));
