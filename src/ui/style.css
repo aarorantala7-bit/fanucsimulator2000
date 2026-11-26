@@ -8,3 +8,6 @@
 .currenttool span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.currenttool i,.toollegend i{display:inline-block;flex:none;width:9px;height:9px;border-radius:2px;}
 .toollegend{position:absolute;bottom:12px;left:14px;right:14px;display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center;background:#fffffff0;border:1px solid #d2dae2;border-radius:5px;padding:6px 9px;font-size:10px;color:#354759;max-height:76px;overflow:auto;}.toollegend span{display:inline-flex;gap:4px;align-items:center;}.toollegend small{color:#647383;margin-left:auto;}.currenttool[hidden],.toollegend[hidden]{display:none;}
 .profile-note{font-size:11px;color:#596a7a;margin:8px 0 0;}
+
+/* CMD-inspired program editor; the surrounding workspace stays light. */
+.programbody{background:#101010}.programbody textarea{background:#101010;color:#e8e8e8;caret-color:#70e99b;line-height:1.65;color-scheme:dark}.programbody textarea::placeholder{color:#969b97}.programbody textarea::selection{background:#23523b;color:#fff}.programbody textarea:focus{box-shadow:inset 0 0 0 1px #3d7752}

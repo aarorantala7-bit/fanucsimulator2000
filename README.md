@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.21**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.22**. Not affiliated with FANUC.
 
 ## Run
 
@@ -11,6 +11,8 @@ The application has a 3D viewport, program editor, virtual stock and tools, a si
 The Inspect menu also contains a separate arithmetic calculator with numbered variables, bracketed expressions, degree-based trigonometry, conditions, bounded calculation-only loops, comment descriptions and stepwise value inspection. It does not execute CNC commands, affect motion or change stock.
 
 Graphics settings include Performance, Balanced and CAD Ultra display presets, studio lighting, three display materials and optional soft silhouette shadows. These are display-only changes; underlying geometry and playback remain unchanged. CAD Ultra increases screen sampling and can be slower on CPU. Hardware WebGL testing remains pending.
+
+The main program editor now has a dark CMD-inspired theme. File > Parameter demo · 3D draft loads a calculation-only rosette overlay into the main viewport. The main playback controls and macro inspector track its arithmetic steps; editing resets playback. The overlay does not generate CNC commands or change virtual stock.
 
 ## Project layout
 
