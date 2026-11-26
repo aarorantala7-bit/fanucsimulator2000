@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.48**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.49**. Not affiliated with FANUC.
 
 ## Run
 
@@ -53,6 +53,8 @@ The Turning shape study adds a playback timeline and animated non-contact inspec
 Turning adds an orbitable 3D mesh display and independent text document with line numbers, local persistence where supported, and plain text import/export. The text is never executed; the mesh follows the existing independent visual timeline, not tool contact or machine operation.
 
 Turning now uses the same two-panel layout and text-only keypad modes as Milling, with independent documents and a read-only lexical line inspector. DELETE removes the full highlighted word in both editors. The inspector does not execute machine commands or affect geometry playback.
+
+Turning now includes a default non-executable text storyboard for the independent shape animation. File > Demo reloads the storyboard with replacement confirmation for existing nonempty text and resets playback. No CNC program execution is added.
 
 ## Project layout
 
