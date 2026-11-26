@@ -4,7 +4,7 @@
  const source=document.getElementById('source'),body=source.parentElement,panel=source.closest('.panel'),pad=document.getElementById('editor-keypad');
  const cursor=document.createElement('span');cursor.id='cnc-text-cursor';cursor.hidden=true;cursor.setAttribute('aria-hidden','true');body.append(cursor);
  const ruler=document.createElement('span');ruler.setAttribute('aria-hidden','true');ruler.style.cssText='position:fixed;visibility:hidden;pointer-events:none;white-space:pre;left:0;top:0;padding:0;border:0;';document.body.append(ruler);
- const style=document.createElement('style');style.textContent='#cnc-text-cursor{position:absolute;z-index:3;display:block;pointer-events:none;background:#b6edb8;color:#102819;box-shadow:0 0 4px #a2e9b66b;white-space:pre;overflow:hidden;text-align:left;}#cnc-text-cursor[hidden]{display:none!important}.cnc-editor-mode #source{caret-color:transparent!important}';document.head.append(style);
+ const style=document.createElement('style');style.textContent='#cnc-text-cursor{position:absolute;z-index:3;display:block;pointer-events:none;background:#b6edb8;color:#102819;box-shadow:0 0 4px #a2e9b66b;white-space:pre;overflow:hidden;text-align:left;}@keyframes cnc-empty-blink{0%,100%{opacity:1}50%{opacity:0}}#cnc-text-cursor.empty-block{animation:cnc-empty-blink 1s steps(1,end) infinite}@media(prefers-reduced-motion:reduce){#cnc-text-cursor.empty-block{animation:none}}#cnc-text-cursor[hidden]{display:none!important}.cnc-editor-mode #source{caret-color:transparent!important}';document.head.append(style);
  let lastIndex=-1,lastValue=null,wasActive=false;
  function paint(reveal=false){
    const active=panel.classList.contains('cnc-editor-mode');if(!active){cursor.hidden=true;wasActive=false;return;}
@@ -26,7 +26,7 @@
    lastIndex=a;lastValue=text;wasActive=true;
    const left=x-source.scrollLeft,top=y-source.scrollTop;
    cursor.hidden=left<0||top<0||left>=source.clientWidth||top+lh>source.clientHeight+.5;
-   cursor.style.left=(source.offsetLeft+left)+'px';cursor.style.top=(source.offsetTop+top)+'px';cursor.style.width=Math.min(w,Math.max(0,source.clientWidth-left))+'px';cursor.style.height=lh+'px';cursor.style.font=s.font;cursor.style.lineHeight=lh+'px';cursor.textContent=highlight;
+   cursor.style.left=(source.offsetLeft+left)+'px';cursor.style.top=(source.offsetTop+top)+'px';cursor.style.width=Math.min(w,Math.max(0,source.clientWidth-left))+'px';cursor.style.height=lh+'px';cursor.style.font=s.font;cursor.style.lineHeight=lh+'px';cursor.classList.toggle('empty-block',!word);cursor.textContent=highlight;
  }
  for(const event of ['input','click','keyup','select','focus'])source.addEventListener(event,()=>paint(true));
  source.addEventListener('scroll',()=>paint());pad.addEventListener('click',()=>paint(true));
