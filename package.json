@@ -1,6 +1,6 @@
 {
   "name": "fanucsimulator2000",
-  "version": "0.32.0",
+  "version": "0.34.0",
   "private": true,
   "scripts": {
     "test": "node tests/check.mjs",
