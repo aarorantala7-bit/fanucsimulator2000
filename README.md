@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.28**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.29**. Not affiliated with FANUC.
 
 ## Run
 
@@ -23,6 +23,8 @@ The code reference includes expanded illustrated concept cards, labeled geometry
 The reference cards now separate documented address-letter terminology into individual rows and show non-executable illustration pseudocode for every entry. G76 includes the terminology from the supplied turning reference, explicitly distinct from milling G76. Coverage is not a complete or validated controller syntax specification.
 
 The reference uses a searchable dropdown and full-width details on mobile and desktop, with compact address-letter tables and horizontally scrollable illustration code panels.
+
+The optional CNC-inspired text keypad is accessible from the program editor header. It provides letters, numbers, symbols and text navigation, with no machine controls. The reference panel displays actual code identifiers instead of invented pseudocode.
 
 ## Project layout
 
