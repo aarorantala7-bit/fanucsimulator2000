@@ -12,7 +12,28 @@
  body.after(pad);const grid=pad.querySelector('.keypad-grid');
  function show(active){pad.hidden=!active;toggle.setAttribute('aria-expanded',String(active));toggle.classList.toggle('primary',active);editor.inputMode=active?'none':'text';}
  toggle.onclick=()=>show(pad.hidden);pad.querySelector('#keypad-close').onclick=()=>show(false);
- function change(value,a=editor.selectionStart,b=editor.selectionEnd){editor.setRangeText(value,a,b,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus({preventScroll:true});}
+ // Shared text formatting only. No interpretation or generation of machine instructions.
+ function formatInsert(value,a,b){
+   value=value.toUpperCase();
+   if(!/^[A-Z]$/.test(value)||a!==b)return value;
+   const before=editor.value.slice(0,a),after=editor.value.slice(b);
+   if(after&&!/^[\n\t ]/.test(after))return value;
+   const line=before.slice(before.lastIndexOf('\n')+1);
+   if(/^(?:[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)[ \t]+)*[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)$/i.test(line))return ' '+value;
+   return value;
+ }
+ function change(value,a=editor.selectionStart,b=editor.selectionEnd){editor.setRangeText(formatInsert(value,a,b),a,b,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus({preventScroll:true});}
+ editor.addEventListener('beforeinput',e=>{
+   if(e.isComposing||!e.cancelable)return;
+   if(e.inputType==='insertText'&&typeof e.data==='string'){
+     const a=editor.selectionStart,b=editor.selectionEnd,formatted=formatInsert(e.data,a,b);
+     if(formatted!==e.data){e.preventDefault();change(e.data,a,b);}
+   }
+ });
+ // Capture before the live preview listener. Paste and native input share uppercase formatting.
+ function uppercaseEditor(){const value=editor.value,upper=value.toUpperCase();if(value===upper)return;const a=editor.selectionStart,b=editor.selectionEnd,dir=editor.selectionDirection;const top=editor.scrollTop,left=editor.scrollLeft;editor.value=upper;editor.setSelectionRange(value.slice(0,a).toUpperCase().length,value.slice(0,b).toUpperCase().length,dir);editor.scrollTop=top;editor.scrollLeft=left;}
+ editor.addEventListener('input',e=>{if(!e.isComposing)uppercaseEditor();},true);
+ editor.addEventListener('compositionend',()=>{uppercaseEditor();editor.dispatchEvent(new Event('input',{bubbles:true}));});
  function move(key){const text=editor.value,a=editor.selectionStart,b=editor.selectionEnd;let n=a;const start=a===0?0:text.lastIndexOf('\n',a-1)+1;let end=text.indexOf('\n',a);if(end===-1)end=text.length;
  if(key==='←')n=a===b?Math.max(0,a-1):a;else if(key==='→')n=a===b?Math.min(text.length,b+1):b;else if(key==='↑'||key==='↓'||key==='PAGE ↑'||key==='PAGE ↓'){const lines=text.split('\n'),row=text.slice(0,a).split('\n').length-1,col=a-start;const page=Math.max(1,Math.floor(editor.clientHeight/parseFloat(getComputedStyle(editor).lineHeight))-1);const delta=key==='↑'?-1:key==='↓'?1:key==='PAGE ↑'?-page:page;const target=Math.max(0,Math.min(lines.length-1,row+delta));n=lines.slice(0,target).reduce((s,v)=>s+v.length+1,0)+Math.min(col,lines[target].length);}
  editor.focus({preventScroll:true});editor.setSelectionRange(n,n);if(key==='PAGE ↑'||key==='PAGE ↓')editor.scrollTop+=key==='PAGE ↑'?-editor.clientHeight:editor.clientHeight;}

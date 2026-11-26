@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.31**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.32**. Not affiliated with FANUC.
 
 ## Run
 
@@ -27,6 +27,8 @@ The reference uses a searchable dropdown and full-width details on mobile and de
 The optional CNC-inspired text keypad is accessible from the program editor header. It provides grouped cream-colored keys, a separate number pad, shifted text symbols and navigation, with no machine controls. The layout is visually inspired by the user-provided panel; alternate key assignments are simulator-specific. The reference panel displays actual code identifiers instead of invented pseudocode.
 
 The compact keypad retains only the selected letter, number, shift and navigation keys. EOB inserts a newline only; an optional visual semicolon marker is independent of the saved editor text.
+
+Physical and virtual keyboard input use the same uppercase text formatting and simple letter-number word spacing while typing. Enter and EOB insert a newline; visual EOB markers remain independent of stored text. Paste is uppercased but not automatically respaced, and compound expressions retain their existing whitespace.
 
 ## Project layout
 
