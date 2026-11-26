@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.38**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.39**. Not affiliated with FANUC.
 
 ## Run
 
