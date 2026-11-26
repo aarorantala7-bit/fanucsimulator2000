@@ -18,7 +18,7 @@
  function pending(value){if(pendingEob){status.textContent='EOB pending. Press INSERT or INPUT, or CAN to cancel.';return;}const a=buffer.selectionStart,b=buffer.selectionEnd;buffer.setRangeText(formatTextInsert(buffer.value,value,a,b),a,b,'end');status.textContent='Pending text updated.';}
  function eobKey(){markEob(true);status.textContent='EOB (;) pending. Press INSERT or INPUT to commit and move to the next row.';}
  function cancelKey(){if(pendingEob){markEob(false);status.textContent='EOB cancelled.';return;}const a=buffer.selectionStart,b=buffer.selectionEnd;buffer.setRangeText('',a===b?Math.max(0,a-1):a,b,'end');status.textContent='Pending text updated.';}
- function textAction(key){let a=editor.selectionStart,b=editor.selectionEnd;const v=buffer.value;if(key==='ALTER'&&a===b&&panel.classList.contains('cnc-editor-mode')){const text=editor.value,start=a-text.slice(0,a).split('\n').at(-1).length;let end=text.indexOf('\n',a);if(end<0)end=text.length;const word=[...text.slice(start,end).matchAll(/\S+/g)].find(m=>a-start>=m.index&&a-start<m.index+m[0].length);if(word){a=start+word.index;b=a+word[0].length;}}if(key==='DELETE'){if(a!==b)change('',a,b);else if(a<editor.value.length)change('',a,a+1);status.textContent='Text deleted.';return;}if(pendingEob&&key==='ALTER'){status.textContent='Press INSERT or INPUT to commit the pending EOB.';return;}if(!v&&!pendingEob){status.textContent='Enter pending text first.';return;}if(key==='ALTER'&&a===b){status.textContent='Highlight a word to replace; use INSERT at an empty cursor.';return;}const ending=pendingEob;change(v+(ending?'\n':''),a,key==='INSERT'?a:b);buffer.value='';buffer.setSelectionRange(0,0);markEob(false);status.textContent=ending?'Line committed. Ready for the next row.':key==='ALTER'?'Selected text replaced.':'Pending text inserted.';}
+ function textAction(key){let a=editor.selectionStart,b=editor.selectionEnd;const v=buffer.value;if(key==='ALTER'&&a===b&&panel.classList.contains('cnc-editor-mode')){const text=editor.value,start=a-text.slice(0,a).split('\n').at(-1).length;let end=text.indexOf('\n',a);if(end<0)end=text.length;const word=[...text.slice(start,end).matchAll(/\S+/g)].find(m=>a-start>=m.index&&a-start<m.index+m[0].length);if(word){a=start+word.index;b=a+word[0].length;}}if(key==='DELETE'){if(a!==b)change('',a,b);else if(a<editor.value.length)change('',a,a+1);status.textContent='Text deleted.';return;}if(pendingEob&&key==='ALTER'){status.textContent='Press INSERT or INPUT to commit the pending EOB.';return;}if(!v&&!pendingEob){status.textContent='Enter pending text first.';return;}if(key==='ALTER'&&a===b){status.textContent='Highlight a word to replace; use INSERT at an empty cursor.';return;}const ending=pendingEob,stop=key==='INSERT'?a:b;change(formatBufferedCommit(v,a,stop,ending),a,stop);buffer.value='';buffer.setSelectionRange(0,0);markEob(false);status.textContent=ending?'Line committed. Ready for the next row.':key==='ALTER'?'Selected text replaced.':'Pending text inserted.';}
 
 
  function show(active){pad.hidden=!active;entry.hidden=!active;toggle.setAttribute('aria-expanded',String(active));toggle.classList.toggle('primary',active);editor.inputMode=active?'none':'text';}
@@ -32,6 +32,18 @@
    const line=before.slice(before.lastIndexOf('\n')+1);
    if(/^(?:[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)[ \t]+)*[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)$/i.test(line))return ' '+value;
    return value;
+ }
+ // Separate complete plain text words across buffer commits; leave expressions and comments alone.
+ function formatBufferedCommit(value,a,b,ending){
+   if(!value)return ending?'\n':'';
+   const word=/^[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)$/i;
+   const simple=line=>line.trim()!==''&&line.trim().split(/[ \t]+/).every(x=>word.test(x));
+   const left=editor.value.slice(0,a).split('\n').at(-1),right=editor.value.slice(b).split('\n')[0];
+   if(simple(value)){
+     if(simple(left)&&!/[ \t]$/.test(left)&&!/^\s/.test(value))value=' '+value;
+     if(!ending&&simple(right)&&!/^\s/.test(right)&&!/[ \t]$/.test(value))value+=' ';
+   }
+   return value+(ending?'\n':'');
  }
  function formatInsert(value,a,b){return formatTextInsert(editor.value,value,a,b);}
  function change(value,a=editor.selectionStart,b=editor.selectionEnd){editor.setRangeText(formatInsert(value,a,b),a,b,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus({preventScroll:true});}
