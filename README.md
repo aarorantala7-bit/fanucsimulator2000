@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.30**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.31**. Not affiliated with FANUC.
 
 ## Run
 
@@ -25,6 +25,8 @@ The reference cards now separate documented address-letter terminology into indi
 The reference uses a searchable dropdown and full-width details on mobile and desktop, with compact address-letter tables and horizontally scrollable illustration code panels.
 
 The optional CNC-inspired text keypad is accessible from the program editor header. It provides grouped cream-colored keys, a separate number pad, shifted text symbols and navigation, with no machine controls. The layout is visually inspired by the user-provided panel; alternate key assignments are simulator-specific. The reference panel displays actual code identifiers instead of invented pseudocode.
+
+The compact keypad retains only the selected letter, number, shift and navigation keys. EOB inserts a newline only; an optional visual semicolon marker is independent of the saved editor text.
 
 ## Project layout
 
