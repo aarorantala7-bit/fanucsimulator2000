@@ -48,7 +48,7 @@ Reference cards now display compact visual notation using the selected identifie
 
 Setup > Workspace switches to a separate turning geometry study with a rotating cylindrical display and editable 35°, 55° and 80° insert silhouettes. R0.4/R0.8 are illustrative corner-rounding presets, not physical tool specifications. No turning program execution, tool contact or material removal. The milling document is retained. Reference notation uses single spaces and fictional placeholders.
 
-The Turning shape study adds a playback timeline and animated non-contact inspection model. Stock and tool geometry settings are available from the same Setup menu entries used for Milling. The display morph is independent of the insert and is not CNC execution or cutting simulation.
+The Turning virtual program adds an editable display-only frame interpreter. FRAME selects a named illustrative shape, a named inspection position, and a display duration. Play, Step, Reset, speed, and timeline share the same program state; invalid instructions disable playback. The insert is now a rounded diamond with a connected holder and centered fastener, drawn in a separate inspection band. Stock and tool geometry settings remain in the same Setup entries as Milling. No machine instructions, tool contact, material removal, or machining verification.
 
 ## Project layout
 

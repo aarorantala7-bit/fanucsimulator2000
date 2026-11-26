@@ -8,4 +8,17 @@ for(const p of scripts) execFileSync(process.execPath,['--check',p],{stdio:'inhe
 for(const p of [...html.matchAll(/(?:src|href)="((?:assets|src)\/[^"]+)"/g)].map(m=>m[1])) assert.ok(existsSync(p),p);
 assert.ok(scripts.indexOf('src/state.js')===0);
 assert.ok(scripts.at(-1)==='src/ui/turning-demo.js');
-console.log('Source checks passed; browser rendering is not covered.');
+const turning=readFileSync('src/ui/turning-demo.js','utf8');
+const model=Function(turning.split('(()=>{\n const e=id=>')[0]+'return TurningDisplayProgram;')();
+const demo=model.compile(model.sample);
+assert.equal(demo.errors.length,0);
+assert.equal(demo.total,8);
+assert.equal(model.at(demo,0).shape,0);
+assert.equal(model.at(demo,8).shape,1);
+assert.equal(model.next(demo,0),2);
+assert.equal(model.next(demo,2),5);
+assert.equal(model.next(demo,8),8);
+assert.equal(model.compile('G01 X1').errors.length,1);
+assert.equal(model.compile('FRAME BLANK LEFT 20').errors.length,1);
+assert.ok(model.compile('; comment only').errors.length);
+console.log('Source and virtual display program checks passed; browser rendering is not covered.');
