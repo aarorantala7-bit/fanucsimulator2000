@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.46**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.47**. Not affiliated with FANUC.
 
 ## Run
 
@@ -49,6 +49,8 @@ Reference cards now display compact visual notation using the selected identifie
 Setup > Workspace switches to a separate turning geometry study with a rotating cylindrical display and editable 35°, 55° and 80° insert silhouettes. R0.4/R0.8 are illustrative corner-rounding presets, not physical tool specifications. No turning program execution, tool contact or material removal. The milling document is retained. Reference notation uses single spaces and fictional placeholders.
 
 The Turning shape study adds a playback timeline and animated non-contact inspection model. Stock and tool geometry settings are available from the same Setup menu entries used for Milling. The display morph is independent of the insert and is not CNC execution or cutting simulation.
+
+Turning adds an orbitable 3D mesh display and independent text document with line numbers, local persistence where supported, and plain text import/export. The text is never executed; the mesh follows the existing independent visual timeline, not tool contact or machine operation.
 
 ## Project layout
 
