@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.34**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.36**. Not affiliated with FANUC.
 
 ## Run
 
@@ -31,6 +31,8 @@ The compact keypad retains only the selected letter, number, shift and navigatio
 Physical and virtual keyboard input use the same uppercase text formatting and simple letter-number word spacing while typing. Enter and EOB insert a newline; visual EOB markers remain independent of stored text. Paste is uppercased but not automatically respaced, and compound expressions retain their existing whitespace.
 
 Normal and CNC Panel are two text-editing presentations of the same document. The CNC Panel has a pending-text bar, line and column indicator, virtual text-edit keys and buffered EOB committed by INSERT or INPUT. These are editor functions only, not machine controls or a controller emulator.
+
+The CNC Panel displays a persistent whole-word text cursor. Horizontal navigation visits whitespace-delimited words and the empty block at each line end. Normal text editing remains unchanged.
 
 ## Project layout
 

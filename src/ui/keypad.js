@@ -47,7 +47,11 @@
  editor.addEventListener('input',e=>{if(!e.isComposing)uppercaseEditor();},true);
  editor.addEventListener('compositionend',()=>{uppercaseEditor();editor.dispatchEvent(new Event('input',{bubbles:true}));});
  function move(key){const text=editor.value,a=editor.selectionStart,b=editor.selectionEnd;let n=a;const start=a===0?0:text.lastIndexOf('\n',a-1)+1;let end=text.indexOf('\n',a);if(end===-1)end=text.length;
- if(key==='←')n=a===b?Math.max(0,a-1):a;else if(key==='→')n=a===b?Math.min(text.length,b+1):b;else if(key==='↑'||key==='↓'||key==='PAGE ↑'||key==='PAGE ↓'){const lines=text.split('\n'),row=text.slice(0,a).split('\n').length-1,col=a-start;const page=Math.max(1,Math.floor(editor.clientHeight/parseFloat(getComputedStyle(editor).lineHeight))-1);const delta=key==='↑'?-1:key==='↓'?1:key==='PAGE ↑'?-page:page;const target=Math.max(0,Math.min(lines.length-1,row+delta));n=lines.slice(0,target).reduce((s,v)=>s+v.length+1,0)+Math.min(col,lines[target].length);}
+ if(key==='←'||key==='→'){
+   const stops=[];let offset=0;
+   for(const line of text.split('\n')){for(const m of line.matchAll(/\S+/g))stops.push(offset+m.index);stops.push(offset+line.length);offset+=line.length+1;}
+   n=key==='←'?(stops.filter(x=>x<a).at(-1)??0):(stops.find(x=>x>b)??text.length);
+ }else if(key==='↑'||key==='↓'||key==='PAGE ↑'||key==='PAGE ↓'){const lines=text.split('\n'),row=text.slice(0,a).split('\n').length-1,col=a-start;const page=Math.max(1,Math.floor(editor.clientHeight/parseFloat(getComputedStyle(editor).lineHeight))-1);const delta=key==='↑'?-1:key==='↓'?1:key==='PAGE ↑'?-page:page;const target=Math.max(0,Math.min(lines.length-1,row+delta));n=lines.slice(0,target).reduce((s,v)=>s+v.length+1,0)+Math.min(col,lines[target].length);}
  editor.focus({preventScroll:true});editor.setSelectionRange(n,n);if(key==='PAGE ↑'||key==='PAGE ↓')editor.scrollTop+=key==='PAGE ↑'?-editor.clientHeight:editor.clientHeight;}
  function add(label,action,row,col,kind=''){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=kind;b.style.gridRow=row;b.style.gridColumn=col;b.setAttribute('aria-label',label);b.addEventListener('pointerdown',e=>e.preventDefault());b.onclick=action;grid.append(b);return b;}
  const keys=[['O','N','G','P','7','8','9'],['X','Z','C','Y','4','5','6'],['U','W','H','V','1','2','3'],['M','S','T','L','-','0','.'],['I','K','R','F','/','EOB','CAN']];
