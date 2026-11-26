@@ -1,12 +1,12 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.15**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.16**. Not affiliated with FANUC.
 
 ## Run
 
 Download or clone the repository, then open `index.html` in a modern browser. No dependencies or machine connection are required. If local-file loading is restricted, serve the folder with a local static web server.
 
-The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings. The startup program demo uses ordinary unwrapped viewer input; three macro demos retain virtual-only directives. The nested grid and multi-tool examples visualize educational patterns; tool-specific path colors, a legend and active tool name are displayed in the viewport. The tool library includes 42 editable visual presets with manufacturer, category and family selectors. Family labels are catalog-inspired; geometry is synthetic and not certified manufacturer data.
+The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings. The startup program demo uses ordinary unwrapped viewer input; three macro demos retain virtual-only directives. The nested grid and multi-tool examples visualize educational patterns; tool-specific path colors, a legend and active tool name are displayed in the viewport. The tool library includes 65 editable visual presets with manufacturer, category and family selectors. Family labels are catalog-inspired; geometry is synthetic and not certified manufacturer data. The Default library adds finishing, angle, disk and specialty profiles. Newly modeled specialty silhouettes are display-only and do not remove virtual stock; the existing flat, rounded, ball and pointed profiles retain approximate surface visualization.
 
 ## Project layout
 

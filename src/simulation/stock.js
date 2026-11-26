@@ -4,7 +4,7 @@ function makeSamples(){samples=[];for(let i=0;i<segs.length;i++){const s=segs[i]
 // Continuous swept 2D profile for the virtual surface. No machine control or process physics.
 function cut(sample){
   const s=segs[sample.i],b=sample.p,t=tools.get(s.tool),last=samples[position-2],a=last&&last.i===sample.i?last.p:s.a;
-  if(s.rapid||!t||Math.min(a.z,b.z)>=0)return;
+  if(s.rapid||!t||isVisualOnlyTool(t)||Math.min(a.z,b.z)>=0)return;
   const r=t.width/2,rr=r*r,st=stock,vx=b.x-a.x,vy=b.y-a.y,vz=b.z-a.z,ll=vx*vx+vy*vy;
   const loX=clamp(Math.floor((Math.min(a.x,b.x)-r-st.x0)/st.dx),0,st.nx-1),hiX=clamp(Math.floor((Math.max(a.x,b.x)+r-st.x0)/st.dx),0,st.nx-1),loY=clamp(Math.floor((Math.min(a.y,b.y)-r-st.y0)/st.dy),0,st.ny-1),hiY=clamp(Math.floor((Math.max(a.y,b.y)+r-st.y0)/st.dy),0,st.ny-1);
   const cr=clamp(t.corner||1,.0001,r), profile=d2=>t.shape==='ball'?r-Math.sqrt(Math.max(0,rr-d2)):t.shape==='point'?Math.sqrt(d2)/r*t.tip:t.shape==='round'?cr-Math.sqrt(Math.max(0,cr*cr-Math.max(0,Math.sqrt(d2)-(r-cr))**2)):0;
