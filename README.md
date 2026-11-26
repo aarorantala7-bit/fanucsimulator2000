@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.25**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.26**. Not affiliated with FANUC.
 
 ## Run
 
@@ -17,6 +17,8 @@ The main program editor now has a dark CMD-inspired theme. File > Parameter demo
 File > Parameter demo · Material study adds a parameter-driven display morph with an animated non-contact reference model synchronized to playback and center-section diagram. The temporary display mesh is independent of actual stock and motion; no tool contact or cutting computation is performed.
 
 File > Macro demo · Combined graphics uses numbered parameters, nested arithmetic loops and simulator-specific DRAW statements to display an abstract mosaic. It shares the calculation timeline and main viewport; no machine motion or stock writes occur.
+
+The code reference includes expanded illustrated concept cards, labeled geometry and section sketches, and a comparison of milling and turning meanings for G76. Examples are non-executable and do not include machine settings or machining sequences.
 
 ## Project layout
 
