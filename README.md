@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.27**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.28**. Not affiliated with FANUC.
 
 ## Run
 
@@ -21,6 +21,8 @@ File > Macro demo · Combined graphics uses numbered parameters, nested arithmet
 The code reference includes expanded illustrated concept cards, labeled geometry and section sketches, and a comparison of milling and turning meanings for G76. Examples are non-executable and do not include machine settings or machining sequences.
 
 The reference cards now separate documented address-letter terminology into individual rows and show non-executable illustration pseudocode for every entry. G76 includes the terminology from the supplied turning reference, explicitly distinct from milling G76. Coverage is not a complete or validated controller syntax specification.
+
+The reference uses a searchable dropdown and full-width details on mobile and desktop, with compact address-letter tables and horizontally scrollable illustration code panels.
 
 ## Project layout
 

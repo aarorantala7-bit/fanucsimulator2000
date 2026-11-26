@@ -11,3 +11,20 @@
 
 /* CMD-inspired program editor; the surrounding workspace stays light. */
 .programbody{background:#101010}.programbody textarea{background:#101010;color:#e8e8e8;caret-color:#70e99b;line-height:1.65;color-scheme:dark}.programbody textarea::placeholder{color:#969b97}.programbody textarea::selection{background:#23523b;color:#fff}.programbody textarea:focus{box-shadow:inset 0 0 0 1px #3d7752}
+
+/* Full-width reference details and compact mobile controls. */
+#codedialog{box-sizing:border-box;width:min(860px,calc(100vw - 20px))!important;max-width:calc(100vw - 20px);padding:14px;max-height:85dvh;overflow:auto}
+#codedialog section{min-width:0;padding:12px}
+#codedialog .buttons{display:flex;flex-wrap:wrap;gap:6px}
+#ref-query{flex:1 0 100%!important;width:100%;box-sizing:border-box}
+#ref-filter,#ref-categoryfilter{flex:1 1 100px;min-width:0;max-width:100%}
+.ref-selector{display:grid;gap:5px;margin:0 0 14px;min-width:0}
+#ref-list{width:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:8px}
+.ref-detail-layout,#ref-details{display:block;min-width:0;width:100%;box-sizing:border-box}
+#ref-details[hidden]{display:none}
+#ref-graphic{display:block;max-height:260px}
+#ref-example{min-width:0;box-sizing:border-box}
+#codedialog .ref-word-table{table-layout:auto;width:100%}
+#codedialog .ref-word-table th:first-child,#codedialog .ref-word-table td:first-child{width:38px;white-space:nowrap}
+#codedialog .ref-code-card{white-space:pre;overflow-wrap:normal;word-break:normal;overflow-x:auto;max-width:100%;box-sizing:border-box;font-size:12px}
+@media(max-width:480px){#codedialog{padding:10px}#codedialog section{padding:9px}#codedialog .ref-word-table td,#codedialog .ref-word-table th{padding:6px}#ref-graphic{max-height:210px}}

@@ -22,7 +22,7 @@ renderRefWords=function(row,el){
  if(words.length){const table=document.createElement('table');table.className='ref-word-table';const head=table.createTHead().insertRow();for(const label of ['Letter','Meaning']){const th=document.createElement('th');th.textContent=label;head.append(th);}const body=table.createTBody();for(const [key,value] of words){const tr=body.insertRow();tr.insertCell().textContent=key;tr.insertCell().textContent=value;}box.append(table);}else{const p=document.createElement('p');p.textContent='No additional address-letter annotations are documented in this entry. This does not establish that the controller accepts none.';box.append(p);}
  if(card?.note){const p=document.createElement('p');p.className='ref-context';p.textContent=card.note;box.append(p);}
  const caption=document.createElement('strong');caption.className='ref-example-label';caption.textContent='Illustration example · pseudocode';
- const pre=document.createElement('pre');pre.className='ref-code-card';pre.textContent=card?.example||`ILLUSTRATE ${row[1].toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'')}\nLABEL ${row[0]}_REFERENCE`;
+ const pre=document.createElement('pre');pre.className='ref-code-card';pre.textContent='REFERENCE '+row[0]+'\n'+(card?.example||`ILLUSTRATE ${row[1].toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'')}\nLABEL ${row[0]}_REFERENCE`);
  const note=document.createElement('small');note.className='ref-example-label';note.textContent='Display-only pseudocode, not CNC syntax. No command sequence or machine settings.';
  example.append(caption,pre,note);
 };
