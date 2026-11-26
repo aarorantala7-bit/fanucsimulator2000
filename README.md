@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.17**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.18**. Not affiliated with FANUC.
 
 ## Run
 
@@ -9,6 +9,8 @@ Download or clone the repository, then open `index.html` in a modern browser. No
 The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings. The startup program demo uses ordinary unwrapped viewer input; three macro demos retain virtual-only directives. The nested grid and multi-tool examples visualize educational patterns; tool-specific path colors, a legend and active tool name are displayed in the viewport. The tool library includes 65 editable visual presets with manufacturer, category and family selectors. Family labels are catalog-inspired; geometry is synthetic and not certified manufacturer data. The Default library adds finishing, angle, disk and specialty profiles. Newly modeled specialty silhouettes are display-only and do not remove virtual stock; the existing flat, rounded, ball and pointed profiles retain approximate surface visualization.
 
 The Inspect menu also contains a separate arithmetic calculator with numbered variables, bracketed expressions, degree-based trigonometry, conditions, bounded calculation-only loops, comment descriptions and stepwise value inspection. It does not execute CNC commands, affect motion or change stock.
+
+Graphics settings include Performance, Balanced and CAD Ultra display presets, studio lighting, three display materials and optional soft silhouette shadows. These are display-only changes; underlying geometry and playback remain unchanged. CAD Ultra increases screen sampling and can be slower on CPU. Hardware WebGL testing remains pending.
 
 ## Project layout
 

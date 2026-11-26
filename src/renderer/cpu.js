@@ -3,6 +3,11 @@
 const surfaceCanvas=document.createElement('canvas'),surfaceCtx=surfaceCanvas.getContext('2d');
 let surfacePixels=null,surfaceDepth=null,cacheStock=null,cacheRevision=-1,cacheView='',meshStock=null,meshRevision=-1,mesh=null;
 const renderStats={triangles:0,ms:0,hits:0,meshMs:0};
+// Display preferences only; never change the virtual stock data.
+const cadMaterials={steel:[185,195,205],aluminium:[222,228,234],matte:[181,188,196]};
+function cadMaterial(){return cadMaterials[$('material').value]||cadMaterials.steel;}
+function cadSampleScale(w,h){return Math.min(({performance:1,balanced:1.6,ultra:2.2})[$('quality').value]||1.6,Math.sqrt(4200000/Math.max(1,w*h)));}
+function compositeStock(image,w,h){ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if($('softshadow').checked){ctx.shadowColor='rgba(42,56,74,0.23)';ctx.shadowBlur=18;ctx.shadowOffsetY=8;}ctx.drawImage(image,0,0,w,h);ctx.restore();}
 function surfaceGeometry(st){
   if(meshStock===st&&meshRevision===surfaceRevision){renderStats.meshMs=0;return mesh;}
   const meshStart=performance.now();
@@ -16,6 +21,10 @@ function surfaceGeometry(st){
   const lighting=$('lighting').value;
   const light=(nx,ny,nz,z)=>{
     const len=Math.hypot(nx,ny,nz)||1;nx/=len;ny/=len;nz/=len;
+    if(lighting==='studio'){
+      const key=Math.max(0,-.40*nx+.44*ny+.80*nz),fill=Math.max(0,.65*nx-.30*ny+.70*nz);
+      return clamp(.62+.23*key+.13*fill+.10*Math.pow(Math.max(0,-.18*nx+.36*ny+.91*nz),18)-.055*clamp(-z/Math.max(1,st.extent*.15),0,1),0,1.12);
+    }
     if(lighting==='original')return (.44+.56*Math.max(0,-.43*nx+.35*ny+.83*nz))*shade(z);
     // Predominantly ambient illumination with a gentle directional component.
     // The vertical component distinguishes walls from floors without emphasizing tiny facets.
@@ -46,11 +55,11 @@ function surfaceGeometry(st){
   mesh={xs,ys,C,R,heights,lights,quads,light};meshStock=st;meshRevision=surfaceRevision;renderStats.meshMs=performance.now()-meshStart;return mesh;
 }
 function renderSmoothStock(st,project,w,h){
-  const start=performance.now(),W=Math.max(1,Math.round(w*1.6)),H=Math.max(1,Math.round(h*1.6));
+  const start=performance.now(),ss=cadSampleScale(w,h),W=Math.max(1,Math.round(w*ss)),H=Math.max(1,Math.round(h*ss));
   const key=[w,h,yaw,pitch,zoom].join('|');
-  if(cacheStock===st&&cacheRevision===surfaceRevision&&cacheView===key){renderStats.hits++;ctx.drawImage(surfaceCanvas,0,0,w,h);renderStats.ms=performance.now()-start;return;}
+  if(cacheStock===st&&cacheRevision===surfaceRevision&&cacheView===key){renderStats.hits++;compositeStock(surfaceCanvas,w,h);renderStats.ms=performance.now()-start;return;}
   if(surfaceCanvas.width!==W||surfaceCanvas.height!==H||!surfacePixels){surfaceCanvas.width=W;surfaceCanvas.height=H;surfacePixels=surfaceCtx.createImageData(W,H);surfaceDepth=new Float32Array(W*H);}
-  const rgba=surfacePixels.data;rgba.fill(0);surfaceDepth.fill(Infinity);const sx=W/w,sy=H/h;
+  const material=cadMaterial(),rgba=surfacePixels.data;rgba.fill(0);surfaceDepth.fill(Infinity);const sx=W/w,sy=H/h;
   const {xs,ys,C,R,heights,lights,quads,light}=surfaceGeometry(st);
   const projected=new Array(C*R);let triangles=0,minX=W,maxX=-1,minY=H,maxY=-1;
   const vertex=(x,y,z,l)=>{const p=project({x,y,z});return {x:p.x*sx,y:p.y*sy,d:p.d,l};};
@@ -75,7 +84,7 @@ function renderSmoothStock(st,project,w,h){
       for(let x=from;x<=to;x++,u+=ux,v+=vx,i++){
         if(u<-.00001||v<-.00001||1-u-v<-.00001)continue;
         const d=c.d+u*ad+v*bd;if(d>=surfaceDepth[i])continue;surfaceDepth[i]=d;
-        const l=c.l+u*al+v*bl,o=i*4;rgba[o]=Math.round(190*l);rgba[o+1]=Math.round(204*l);rgba[o+2]=Math.round(216*l);rgba[o+3]=255;
+        const l=c.l+u*al+v*bl,o=i*4;rgba[o]=Math.round(material[0]*l);rgba[o+1]=Math.round(material[1]*l);rgba[o+2]=Math.round(material[2]*l);rgba[o+3]=255;
       }
     }
   }
@@ -108,6 +117,6 @@ function renderSmoothStock(st,project,w,h){
       if(alpha){const o=i*4;rgba[o]*=1-alpha;rgba[o+1]*=1-alpha;rgba[o+2]*=1-alpha;}
     }
   }
-  surfaceCtx.putImageData(surfacePixels,0,0);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(surfaceCanvas,0,0,w,h);
+  surfaceCtx.putImageData(surfacePixels,0,0);compositeStock(surfaceCanvas,w,h);
   cacheStock=st;cacheRevision=surfaceRevision;cacheView=key;renderStats.triangles=triangles;renderStats.ms=performance.now()-start;
 }
