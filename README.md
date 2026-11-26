@@ -1,6 +1,6 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.23**. Not affiliated with FANUC.
+Independent, browser-based educational visualization prototype. Development baseline: **v0.24**. Not affiliated with FANUC.
 
 ## Run
 
@@ -14,7 +14,7 @@ Graphics settings include Performance, Balanced and CAD Ultra display presets, s
 
 The main program editor now has a dark CMD-inspired theme. File > Parameter demo · 3D draft loads a calculation-only rosette overlay into the main viewport. The main playback controls and macro inspector track its arithmetic steps; editing resets playback. The overlay does not generate CNC commands or change virtual stock.
 
-File > Parameter demo · Material study adds a parameter-driven display morph with a stationary reference model and center-section diagram. The temporary display mesh is independent of actual stock and motion; no tool contact or cutting computation is performed.
+File > Parameter demo · Material study adds a parameter-driven display morph with an animated non-contact reference model synchronized to playback and center-section diagram. The temporary display mesh is independent of actual stock and motion; no tool contact or cutting computation is performed.
 
 ## Project layout
 
