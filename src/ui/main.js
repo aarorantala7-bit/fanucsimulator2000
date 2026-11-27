@@ -20,11 +20,17 @@ function scheduleProgramEdit(){
   editTimer=setTimeout(()=>{const savedZoom=zoom;$('load').click();zoom=savedZoom;dirty=true;},200);
 }
 $('source').addEventListener('input',scheduleProgramEdit);
+// G31: a first run on copies (every skip at its full distance) sizes the blank the way install() will; the real run then
+// searches each G31 move against that blank with the earlier cuts replayed (SkipSim.millHost).
+function millSkipHost(text,p0,skip){if(!/\bG\s*0*31(?!\d)/i.test(text.replace(/\([^()]*\)/g,'')))return null;const ms=MachineState.mill,clone=o=>JSON.parse(JSON.stringify(o)),cp=()=>new Map([...p0].map(([k,v])=>[k,Array.isArray(v)?v.slice():v]));
+ const m1=FanucMacro.execute(text,{machine:'mill',params:cp(),offsets:clone(ms.offsets),work:clone(ms.work),common:new Map(MachineState.common),blockSkip:skip,library:MachineState.library('mill')});
+ const run=b=>parse(b,{blockSkip:skip,params:cp(),offsets:ms.offsets,work:ms.work}).s;const keep=segs;segs=run(m1.blocks);const blank=makeStock();segs=keep;
+ return SkipSim.millHost({blank,parse:run,toolFor:id=>tools.get(id)||toolDefaults(id),cuts:t=>!isVisualOnlyTool(t)&&t.kind!=='probe'});}
 $('load').onclick=()=>{cancelProgramEdit();carry=0;SimRuntime.reset();const text=$('source').value,skip=SimRuntime.state.blockSkip;
  if(/\(SIM:/i.test(text)){// original viewer-only SIM directives
   const e=expandVirtual(text),r=parse(e.src,{blockSkip:skip});macroRows=e.trace;for(const seg of r.s){seg.traceIndex=seg.line-1;const t=macroRows[seg.traceIndex];if(t){seg.line=t.line;seg.raw=t.expanded;}}
   install(r.s,[...e.notes,...r.notes.map(n=>n.replace(/^Line (\d+):/,(_,i)=>'Line '+(macroRows[Number(i)-1]?.line||i)+':'))],'import');return;}
- if(FanucMacro.needsMacro(text)){const ms=MachineState.mill;const p0=new Map([...ms.params].map(([k,v])=>[k,Array.isArray(v)?v.slice():v]));const m=FanucMacro.execute(text,{machine:'mill',params:ms.params,offsets:ms.offsets,work:ms.work,common:MachineState.common,blockSkip:skip,library:MachineState.library('mill')});
+ if(FanucMacro.needsMacro(text)){const ms=MachineState.mill;const p0=new Map([...ms.params].map(([k,v])=>[k,Array.isArray(v)?v.slice():v]));const m=FanucMacro.execute(text,{machine:'mill',params:ms.params,offsets:ms.offsets,work:ms.work,common:MachineState.common,blockSkip:skip,library:MachineState.library('mill'),skip:millSkipHost(text,p0,skip)});
   macroRows=m.trace;const r=parse(m.blocks,{blockSkip:skip,params:p0,offsets:ms.offsets,work:ms.work});MachineState.persist();install(r.s,[...m.notes,...r.notes],'import');return;}
  macroRows=[];const ms=MachineState.mill;const r=parse(text,{blockSkip:skip,params:ms.params,offsets:ms.offsets,work:ms.work});install(r.s,r.notes,'import');
 };
@@ -33,7 +39,7 @@ $('open').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('
  if(hudDue&&now-hudTime>100){hudDue=false;hudTime=now;updateHUD();}
  if(dirty){dirty=false;draw()}requestAnimationFrame(tick)}
 let hudDue=false,hudTime=0;
-const menus=[...document.querySelectorAll('.menu')];for(const m of menus)m.addEventListener('toggle',()=>{if(m.open)for(const other of menus)if(other!==m)other.open=false;});const closeMenus=()=>menus.forEach(m=>m.open=false);document.addEventListener('click',e=>{if(!e.target.closest('.menu')||e.target.closest('.dropdown button'))closeMenus();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});for(const b of document.querySelectorAll('[data-dialog]'))b.onclick=()=>$(b.dataset.dialog).showModal();for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.dataset.close).close();$('backend').onchange=()=>{hybridFailed=false;dirty=true;};const refreshCad=()=>{surfaceRevision++;dirty=true;};
+const menus=[...document.querySelectorAll('.menu')];for(const m of menus)m.addEventListener('toggle',()=>{if(m.open)for(const other of menus)if(other!==m)other.open=false;});const closeMenus=()=>menus.forEach(m=>m.open=false);document.addEventListener('click',e=>{if(e.isTrusted===false&&!e.target.closest('.menu'))return;if(!e.target.closest('.menu')||e.target.closest('.dropdown button'))closeMenus();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});for(const b of document.querySelectorAll('[data-dialog]'))b.onclick=()=>$(b.dataset.dialog).showModal();for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.dataset.close).close();$('backend').onchange=()=>{hybridFailed=false;dirty=true;};const refreshCad=()=>{surfaceRevision++;dirty=true;};
 for(const id of ['smoothing','lighting','sharpedges','material','softshadow'])$(id).onchange=refreshCad;
 $('quality').onchange=()=>{const q=$('quality').value;$('smoothing').value=q==='performance'?'0':q==='ultra'?'2':'1';$('softshadow').checked=q!=='performance';$('sharpedges').checked=true;refreshCad();};$('saveprogram').onclick=()=>{const blob=new Blob([$('source').value],{type:'text/plain'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='program.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};const splitter=$('splitter');splitter.onpointerdown=e=>{splitter.setPointerCapture(e.pointerId);splitter.dataset.drag='1';};splitter.onpointermove=e=>{if(!splitter.dataset.drag)return;const r=$('workspace').getBoundingClientRect(),f=clamp((e.clientX-r.left-18)/(r.width-36),.35,.78);$('workspace').style.gridTemplateColumns=`minmax(0,${f}fr) 7px minmax(250px,${1-f}fr)`;};splitter.onpointerup=splitter.onpointercancel=()=>delete splitter.dataset.drag;
 requestAnimationFrame(tick);
