@@ -1,8 +1,11 @@
 'use strict';
-function makeStock(){if(stockConfig){const {x,y,z}=stockConfig,extent=Math.max(x,y,10),nx=clamp(Math.ceil(x/extent*320),10,320),ny=clamp(Math.ceil(y/extent*320),10,320);let maxZ=0;for(const s of segs)if(!s.cycle||!/G28|G53/.test(s.cycle))maxZ=Math.max(maxZ,s.a.z,s.b.z);maxZ=Math.min(maxZ,extent*.6);return {x0:-x/2,x1:x/2,y0:-y/2,y1:y/2,nx,ny,dx:x/nx,dy:y/ny,bottom:-z,maxZ,extent,cx:0,cy:0,h:new Float32Array(nx*ny)};}// Auto size: cutting moves only (+ tool radius), then the user's margin (SimRuntime.state.stockMargin, default 10 %).
+// Height-field blank in work coordinates. The work zero on the blank comes from SimRuntime.state.millZero (default:
+// X0 Y0 at the centre, Z0 on the top surface); `top` is the uncut surface height.
+function blankFrom(b,maxZ,auto){const x=b.x1-b.x0,y=b.y1-b.y0,extent=Math.max(x,y,10),nx=clamp(Math.ceil(x/extent*320),10,320),ny=clamp(Math.ceil(y/extent*320),10,320),h=new Float32Array(nx*ny);if(b.top)h.fill(b.top);
+ return {x0:b.x0,x1:b.x1,y0:b.y0,y1:b.y1,nx,ny,dx:x/nx,dy:y/ny,top:b.top,bottom:b.bottom,maxZ:Math.min(maxZ,extent*.6),extent,cx:(b.x0+b.x1)/2,cy:(b.y0+b.y1)/2,h,auto,outside:b.outside};}
+function makeStock(){const zero=SimRuntime.state.millZero;if(stockConfig){const {x,y,z}=stockConfig;let maxZ=0;for(const s of segs)if(!s.cycle||!/G28|G53/.test(s.cycle))maxZ=Math.max(maxZ,s.a.z,s.b.z);return blankFrom(SimRuntime.placeMillStock({x,y,z},null,stockConfig.demo?null:zero),maxZ);}// Auto size: cutting moves only (+ tool radius), then the user's margin (SimRuntime.state.stockMargin, default 10 %).
  const wa=SimRuntime.millWorkArea(segs,id=>((tools.get(id)||(typeof toolDefaults==='function'?toolDefaults(id):null)||{width:5}).width||5)/2,SimRuntime.state.stockMargin);
- if(wa){let mz=0;for(const s of segs)if(!s.cycle||!/G28|G53/.test(s.cycle))mz=Math.max(mz,s.a.z,s.b.z);const extent=Math.max(wa.x1-wa.x0,wa.y1-wa.y0,10),nx=clamp(Math.ceil((wa.x1-wa.x0)/extent*320),10,320),ny=clamp(Math.ceil((wa.y1-wa.y0)/extent*320),10,320);
-  return {x0:wa.x0,x1:wa.x1,y0:wa.y0,y1:wa.y1,nx,ny,dx:(wa.x1-wa.x0)/nx,dy:(wa.y1-wa.y0)/ny,bottom:-wa.depth,maxZ:Math.min(mz,extent*.6),extent,cx:(wa.x0+wa.x1)/2,cy:(wa.y0+wa.y1)/2,h:new Float32Array(nx*ny),auto:wa};}
+ if(wa){let mz=0;for(const s of segs)if(!s.cycle||!/G28|G53/.test(s.cycle))mz=Math.max(mz,s.a.z,s.b.z);return blankFrom(SimRuntime.placeMillStock(null,wa,zero),mz,wa);}
  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=0,maxZ=0;for(const s of segs){if(s.cycle&&/G28|G53/.test(s.cycle))continue;for(const p of [s.a,s.b]){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z)}}if(!segs.length){minX=minY=-25;maxX=maxY=25;}const pad=Math.max(8,Math.max(maxX-minX,maxY-minY)*.12);const x0=minX-pad,x1=maxX+pad,y0=minY-pad,y1=maxY+pad;const extent=Math.max(x1-x0,y1-y0,10);const nx=clamp(Math.ceil((x1-x0)/extent*320),10,320),ny=clamp(Math.ceil((y1-y0)/extent*320),10,320);return {x0,x1,y0,y1,nx,ny,dx:(x1-x0)/nx,dy:(y1-y0)/ny,bottom:Math.min(minZ-4,-extent*.12),maxZ:Math.min(maxZ,extent*.6),extent,cx:(x0+x1)/2,cy:(y0+y1)/2,h:new Float32Array(nx*ny)}}
 // Playback steps are NC blocks (SimRuntime.makeBlocks): one Step = one block. `live` is the time-based
 // position inside the running block ({i,f,p}); `cutAt` is how far material has been removed ({i,f}).
@@ -16,7 +19,7 @@ function cutSeg(k,f0,f1){const s=segs[k];if(!s||f1<=f0)return;cutPiece(s,f0<=0?s
 function cutTo(i,f){let k=cutAt.i,f0=cutAt.f;if(i<k||(i===k&&f<=f0))return;while(k<i){cutSeg(k,f0,1);k++;f0=0;}cutSeg(i,f0,f);cutAt={i,f};}
 function cutPiece(s,a,b){
   const t=tools.get(s.tool);
-  if(s.rapid||s.len===0||!t||isVisualOnlyTool(t)||Math.min(a.z,b.z)>=0)return;
+  if(s.rapid||s.len===0||!t||isVisualOnlyTool(t)||Math.min(a.z,b.z)>=(stock.top||0))return;
   const r=t.width/2,rr=r*r,st=stock,vx=b.x-a.x,vy=b.y-a.y,vz=b.z-a.z,ll=vx*vx+vy*vy;
   const loX=clamp(Math.floor((Math.min(a.x,b.x)-r-st.x0)/st.dx),0,st.nx-1),hiX=clamp(Math.floor((Math.max(a.x,b.x)+r-st.x0)/st.dx),0,st.nx-1),loY=clamp(Math.floor((Math.min(a.y,b.y)-r-st.y0)/st.dy),0,st.ny-1),hiY=clamp(Math.floor((Math.max(a.y,b.y)+r-st.y0)/st.dy),0,st.ny-1);
   const cr=clamp(t.corner||1,.0001,r), profile=d2=>t.shape==='ball'?r-Math.sqrt(Math.max(0,rr-d2)):t.shape==='point'?Math.sqrt(d2)/r*t.tip:t.shape==='round'?cr-Math.sqrt(Math.max(0,cr*cr-Math.max(0,Math.sqrt(d2)-(r-cr))**2)):0;
@@ -36,10 +39,10 @@ function cutPiece(s,a,b){
     const k=y*st.nx+x;const next=Math.fround(Math.max(st.bottom,Math.min(st.h[k],z)));if(next!==st.h[k]){st.h[k]=next;surfaceRevision++;}
   }
 }
-function rebuildStock(target){stock.h.fill(0);surfaceRevision++;position=0;cutAt={i:0,f:0};live=null;advance(target);dirty=true;}
+function rebuildStock(target){stock.h.fill(stock.top||0);surfaceRevision++;position=0;cutAt={i:0,f:0};live=null;advance(target);dirty=true;}
 // Jump to the end of block `target` (step, seek, reset); playback passes keepLive so the in-block position stays.
 function advance(target,deferHUD,keepLive){target=clamp(target,0,samples.length);if(!keepLive){live=null;SimRuntime.reset();}
- const end=target?{i:samples[target-1].i,f:1}:{i:0,f:0};if(end.i<cutAt.i||(end.i===cutAt.i&&end.f<cutAt.f)){stock.h.fill(0);surfaceRevision++;cutAt={i:0,f:0};}
+ const end=target?{i:samples[target-1].i,f:1}:{i:0,f:0};if(end.i<cutAt.i||(end.i===cutAt.i&&end.f<cutAt.f)){stock.h.fill(stock.top||0);surfaceRevision++;cutAt={i:0,f:0};}
  if(target)cutTo(end.i,1);position=target;dirty=true;if(deferHUD)hudDue=true;else updateHUD();}
 // Per frame while playing: the tool point inside block `position`, `t` seconds into it; material follows it.
 function setLive(t){if(position>=samples.length||t<=0){if(live){live=null;dirty=true;}return;}const L=SimRuntime.locate(samples[position],segs,t);const s=segs[L.i];live={i:L.i,f:L.f,p:lerp(s.a,s.b,L.f)};cutTo(L.i,L.f);dirty=true;hudDue=true;}
