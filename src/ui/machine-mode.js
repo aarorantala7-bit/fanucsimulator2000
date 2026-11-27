@@ -12,7 +12,8 @@
  const demoBox=$('demomenu');
  for(const d of SimDemos.DEMOS){const b=document.createElement('button');b.type='button';b.dataset.machine=d.machine;b.dataset.demo=d.id;b.textContent=d.title;b.onclick=()=>loadDemo(d.id);demoBox.append(b);}
  function loadDemo(id){const d=SimDemos.byId(id);if(!d)return;if(d.machine!==globalThis.simMode)setSimMode(d.machine,{keepDoc:true});
-  $('source').value=d.text;if(d.machine==='lathe'){if(d.stock)LatheView.setStock(d.stock);}else if(d.stock)stockConfig={x:d.stock.x,y:d.stock.y,z:d.stock.z};
+  $('source').value=d.text;if(d.machine==='lathe'){if(d.stock)LatheView.setStock(d.stock);}else if(d.stock)stockConfig={x:d.stock.x,y:d.stock.y,z:d.stock.z,demo:SimRuntime.programNumber(d.text)};
+  if(d.machine==='lathe')LatheView.demoO=d.stock?SimRuntime.programNumber(d.text):null;
   globalThis.manualPos=null;$('load').click();saveDoc();}
  // ---- transport delegation ----
  const orig={play:$('play').onclick,step:$('step').onclick,reset:$('reset').onclick,seek:$('seek').oninput,load:$('load').onclick};
@@ -22,6 +23,16 @@
  $('reset').onclick=e=>{if(lathe()){if(editTimer!==null)return;LatheView.reset();}else orig.reset(e);};
  $('seek').oninput=e=>{if(lathe()){if(editTimer!==null)return;LatheView.playing=false;LatheView.seek(Number(e.target.value));}else orig.seek(e);};
  $('load').onclick=e=>{if(lathe()){cancelProgramEdit();LatheView.load($('source').value);}else orig.load(e);saveDoc();globalThis.CncPanel?.refresh(true);};
+ // ---- auto stock settings (margin %, keep manual size), shared by both machines ----
+ try{const sv=JSON.parse(localStorage.getItem('fanucsim.stock')||'{}');if(sv.margin>=0)SimRuntime.state.stockMargin=+sv.margin;SimRuntime.state.keepManualStock=!!sv.keep;}catch{}
+ const saveStockPrefs=()=>{try{localStorage.setItem('fanucsim.stock',JSON.stringify({margin:SimRuntime.state.stockMargin,keep:SimRuntime.state.keepManualStock}));}catch{}};
+ const syncStockUi=()=>{for(const e of document.querySelectorAll('.stockmargin'))e.value=SimRuntime.state.stockMargin;for(const e of document.querySelectorAll('.stockkeep'))e.checked=SimRuntime.state.keepManualStock;};
+ for(const e of document.querySelectorAll('.stockmargin'))e.onchange=()=>{const v=Math.max(0,Math.min(200,Number(e.value)));if(!Number.isFinite(v))return;SimRuntime.state.stockMargin=v;saveStockPrefs();syncStockUi();
+  if(lathe()){if(LatheView.autoStock){LatheView.load($('source').value);LatheView.fit();}}else if(stockConfig===null){applyStock(null);if(typeof stockPreview==='function')stockPreview();}};
+ for(const e of document.querySelectorAll('.stockkeep'))e.onchange=()=>{SimRuntime.state.keepManualStock=e.checked;saveStockPrefs();syncStockUi();};
+ syncStockUi();
+ // A newly opened program gets an auto-sized blank unless "keep manual size" is on.
+ globalThis.onProgramOpened=()=>{if(SimRuntime.state.keepManualStock)return;if(lathe())LatheView.autoStock=true;else stockConfig=null;};
  // ---- setup menu routing ----
  const toolBtn=document.querySelector('[data-dialog="tooldialog"]');if(toolBtn){toolBtn.removeAttribute('data-dialog');toolBtn.id='toolsetup';toolBtn.onclick=()=>lathe()?LatheView.openTools():$('tooldialog').showModal();}
  const millStock=$('stocksetup').onclick;$('stocksetup').onclick=e=>lathe()?LatheView.openStock():millStock(e);
@@ -37,7 +48,7 @@
   LatheView.show(m==='lathe');document.querySelector('.panel .panelhead strong').textContent=m==='lathe'?'Turning visualization (XZ / revolved)':'3D visualization';
   for(const d of document.querySelectorAll('dialog[open]'))if(/tool|stock/.test(d.id))d.close();
   globalThis.CodeLibrary?.setMachine(m);globalThis.CncPanel?.setMachine(m);
-  if(!opt.keepDoc){const doc=store.get(DOC+m);if(doc!=null&&doc.trim())$('source').value=doc;else{const d=SimDemos.forMachine(m)[0];$('source').value=d.text;if(m==='lathe')LatheView.setStock(d.stock);else if(d.stock)stockConfig={...d.stock};}
+  if(!opt.keepDoc){const doc=store.get(DOC+m);if(doc!=null&&doc.trim())$('source').value=doc;else{const d=SimDemos.forMachine(m)[0];$('source').value=d.text;if(m==='lathe'){LatheView.setStock(d.stock);LatheView.demoO=SimRuntime.programNumber(d.text);}else if(d.stock)stockConfig={...d.stock,demo:SimRuntime.programNumber(d.text)};}
    $('load').click();}
   if(m==='mill'){dirty=true;updateHUD();}else LatheView.dirty=true;}
  sel.onchange=()=>setSimMode(sel.value);
@@ -48,6 +59,6 @@
   tools:lathe()?'lathe':'mill',toolDialog:lathe()?'lathetooldialog':'tooldialog',stockDialog:lathe()?'lathestockdialog':'stockdialog',
   demos:[...demoBox.children].filter(b=>getComputedStyle(b).display!=='none').map(b=>b.dataset.machine)});
  const style=document.createElement('style');style.textContent=`.machine-select{margin-left:auto;display:flex;align-items:center;gap:6px;font:600 12px Segoe UI,sans-serif;color:#354555;padding:0 8px}.machine-select select{font:600 12px Segoe UI,sans-serif;padding:4px 6px;border:1px solid #9fb3c8;border-radius:4px;background:#fff;color:#175895}
- body[data-machine=lathe] .mill-only,body[data-machine=mill] .lathe-only,body[data-machine=lathe] #demomenu [data-machine=mill],body[data-machine=mill] #demomenu [data-machine=lathe]{display:none!important}#demomenu{display:contents}body[data-machine=lathe] #hud{top:auto;bottom:10px;left:auto;right:10px;background:#ffffffd9;border-radius:4px;padding:4px 6px}body[data-machine=lathe] #renderinfo{visibility:hidden}`;document.head.append(style);
+ body[data-machine=lathe] .mill-only,body[data-machine=mill] .lathe-only,body[data-machine=lathe] #demomenu [data-machine=mill],body[data-machine=mill] #demomenu [data-machine=lathe]{display:none!important}#demomenu{display:contents}body[data-machine=lathe] #renderinfo{visibility:hidden}`;document.head.append(style);
  const start=store.get(KEY)==='lathe'?'lathe':'mill';setSimMode(start,{initial:true});
 })();
