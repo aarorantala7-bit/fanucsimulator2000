@@ -14,7 +14,7 @@ class MacroError extends Error{constructor(line,msg){super('Line '+line+': '+msg
 const DEC='XYZUWIJKRFABCE';
 const wordValue=(k,v,expr)=>{if(/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(expr))return expr;const t=fmt(v);return DEC.includes(k)&&!t.includes('.')?t+'.':t;};
 const fmt=v=>{if(!Number.isFinite(v))return '0';let s=(Math.round(v*1e6)/1e6).toFixed(6).replace(/\.?0+$/,'');if(s==='-0')s='0';if(!s.includes('.')&&Math.abs(v)>=0)s=s;return s;};
-function needsMacro(src){return /#|\bIF\s*\[|\bWHILE\s*\[|\bGOTO|\bG\s*65\b|\bM\s*98\b|\bG\s*10\b|PRM\s*\[|\bEND\s*\d/i.test(src.replace(/\([^()]*\)/g,''))||(src.match(/^\s*O\d+/gim)||[]).length>1;}
+function needsMacro(src){return /\bG\s*0*31(?!\d)|#|\bIF\s*\[|\bWHILE\s*\[|\bGOTO|\bG\s*65\b|\bM\s*98\b|\bG\s*10\b|PRM\s*\[|\bEND\s*\d/i.test(src.replace(/\([^()]*\)/g,''))||(src.match(/^\s*O\d+/gim)||[]).length>1;}
 // Split a file into programs keyed by O number. Text before the first O is program 0.
 function splitPrograms(src){const lines=src.split(/\r?\n/),progs=new Map();let cur={o:0,lines:[]};progs.set(0,cur);
  lines.forEach((raw,i)=>{const m=raw.match(/^\s*[O:](\d+)/i);if(m){cur={o:Number(m[1]),lines:[]};progs.set(cur.o,cur);}cur.lines.push({raw,line:i+1});});
@@ -31,6 +31,7 @@ function createExecutor(opt={}){
  const notes=[];const out=[];const trace=[];
  const pos={x:0,y:0,z:0};let absolute=true,modal={g1:0,g3:90,f:0,s:0,t:0,h:0,d:0,wcs:54,g17:machine==='lathe'?18:17};let blocks=0,steps=0;const t0=0;let simTime=0;
  const axes=machine==='lathe'?['X','Z']:['X','Y','Z'];
+ const skipPos=[0,0,0,0,0,0];// #5061-#5066: work position at the last G31 skip (or its end point without contact)
  let frame=null;
  function param(n,axis){const v=params.get(n);if(v===undefined)return null;if(Array.isArray(v))return axis?(v[axis-1]??null):v[0];return v;}
  function offsetTable(kind){return offsets[kind]||(offsets[kind]={});}
@@ -45,6 +46,7 @@ function createExecutor(opt={}){
   if(n>=5001&&n<=5003){const k=['x',machine==='lathe'?'z':'y','z'][n-5001];if(machine==='lathe'&&n===5003)return 0;return pos[k];}
   if(n>=5021&&n<=5023){const k=['x',machine==='lathe'?'z':'y','z'][n-5021];if(machine==='lathe'&&n===5023)return 0;const w=work[modal.wcs]||{};return pos[k]+(w[k]||0);}
   if(n>=5041&&n<=5043)return sysRead(n-40,line);
+  if(n>=5061&&n<=5066)return skipPos[n-5061];
   if(n>=5201&&n<=5340){const idx=Math.floor((n-5201)/20),axis=(n-5201)%20;const key=idx===0?'ext':String(53+idx);if(idx>6||axis>=axes.length)return 0;const w=work[key]||{};return w[axes[axis].toLowerCase()]||0;}
   if(machine==='lathe'){
    const map=[[2001,'wear','x'],[2101,'wear','z'],[2201,'wear','r'],[2301,'wear','t'],[2701,'geom','x'],[2801,'geom','z'],[2901,'geom','r'],[2401,'geom','t']];
@@ -177,9 +179,11 @@ function createExecutor(opt={}){
      if(--frame.repeat>0){frame.pc=frame.start;continue;}const back=stack.pop();frame=back;if(P){frame.pc=findN(frame.prog,Math.round(P[1]),l.line);}else frame.pc++;continue;}
    // Normal NC block: substitute values, omit vacant words
    const parts=[];for(const [k,v,expr] of w){if(v===null)continue;parts.push(k+wordValue(k,v,expr));}
+   const skip=gs.includes(31);
    track(w);
    const text2=(nnum!==null?'N'+nnum+' ':'')+parts.join(' ');
    if(parts.length)emit(text2,l,{n:nnum});
+   if(skip&&parts.length)g31(out[out.length-1],l);
    if(ms.some(x=>x===30||x===2)&&frame.kind==='main'){break;}
    frame.pc++;
   }
@@ -191,6 +195,14 @@ function createExecutor(opt={}){
   n=Math.round(n);if(!rhs)throw new MacroError(l.line,'Missing value in assignment');const v=ev.parse(rhs);
   if(n>=1&&n<=33){currentFrame().locals[n]=v;return;}if(n===0)throw new MacroError(l.line,'#0 is read-only');sysWrite(n,v,l.line,msg);}
  function currentFrame(){return frame;}
+ // G31 (one-shot): the host (opt.skip) runs the blocks so far, searches the move for contact with the material and returns
+ // the stop point {x,y,z, contact} in work coordinates; without a host the move runs its full distance. The block keeps
+ // the stop point (block.skip) so the interpreters end the move there, and #5061+ read it (FANUC: end point if no contact).
+ function g31(b,l){let r=null;if(typeof opt.skip==='function')r=opt.skip({blocks:out,block:b,line:l.line});
+  const end=r||{x:pos.x,y:pos.y,z:pos.z,contact:false,full:true};
+  for(const a of ['x','y','z'])if(Number.isFinite(end[a]))pos[a]=Math.round(end[a]*1000)/1000||0;// IS-B: 0.001 mm
+  axes.forEach((a,i)=>{skipPos[i]=pos[a.toLowerCase()];});
+  if(r)b.skip={x:pos.x,y:pos.y,z:pos.z,contact:!!r.contact};}
  function track(w){for(const [k,v] of w){if(v===null)continue;if(k==='G'){if([0,1,2,3,32,33].includes(v))modal.g1=v;else if(v===90&&machine==='mill')absolute=true;else if(v===91&&machine==='mill')absolute=false;else if(v>=54&&v<=59)modal.wcs=v;else if([17,18,19].includes(v))modal.g17=v;}
    else if(k==='F')modal.f=v;else if(k==='S')modal.s=v;else if(k==='T')modal.t=v;else if(k==='H')modal.h=v;else if(k==='D')modal.d=v;}
   for(const [k,v] of w){if(v===null)continue;const a=k.toLowerCase();

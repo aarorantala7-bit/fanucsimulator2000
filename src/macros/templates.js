@@ -30,10 +30,10 @@ const TEMPLATES=[
   desc:'Drills one hole at X Y with a programmed peck loop (no canned cycle): pecks of Q, full retract to the R-point after each peck, rapid back to K above the last depth. Call it again with G65 for more holes.',
   params:[p('X','Hole X',20),p('Y','Hole Y',0),p('Z','Hole depth Z',-20),p('Q','Peck depth',4),p('R','R-point Z',2),p('K','Rapid clearance',0.5),p('F','Feed',150,'mm/min')],
   body:['G0X{X}Y{Y}','G0Z{R}','#27={R}(CURRENT DEPTH)','WHILE[#27 GT {Z}]DO{D1}','#29=#27+{K}','IF[#29 GT {R}]THEN#29={R}','#27=#27-{Q}','IF[#27 LT {Z}]THEN#27={Z}','G0Z#29','G1Z#27F{F}','G0Z{R}','END{D1}']},
- {id:'probe-edge',machine:'mill',o:9160,name:'Probe an X edge (stub)',setup:MILL_SETUP(2),
-  desc:'Probing-style stub: from X Y at depth Z it moves D (+1 or −1) towards an X edge for up to Q, reads the position (#5001) and stores the edge (stylus diameter T compensated) in common variable #140, the search start in #141. On the machine this move is G31 (skip); the simulator has no skip input, so it uses G1 and the full search distance. Clearance plane R.',
+ {id:'probe-edge',machine:'mill',o:9160,name:'Probe an X edge (G31)',setup:['T12M6','G0X0Y0','G43Z25.H12'],
+  desc:'Touch-probe cycle with the T12 ball probe: from X Y it lowers to depth Z with a protected G31 move, then searches D (+1 or −1) towards an X edge with G31 for up to Q. The skip position #5061 (ball centre X) is compensated by the stylus radius (T = diameter) and stored as the edge in common variable #140, the search start in #141. Without contact G31 runs the full distance and #5061 is its end point. Clearance plane R.',
   params:[p('X','Start X (beside the part)',-70),p('Y','Start Y',0),p('Z','Probe depth Z',-5),p('D','Direction (+1 / −1)',1,'',{min:-1,max:1}),p('Q','Search distance',25),p('T','Stylus diameter',6),p('R','Clearance plane Z',10),p('F','Probe feed',300,'mm/min')],
-  body:['(G31 SKIP ON THE MACHINE - THE SIMULATOR USES G1)','G0X{X}Y{Y}','G0Z{R}','G1Z{Z}F[{F}*3]','G1X[{X}+{D}*{Q}]F{F}','#27=#5001(POSITION AT THE SKIP)','#140=#27+{D}*{T}/2(EDGE X)','#141={X}','G0X{X}','G0Z{R}']},
+  body:['G0X{X}Y{Y}','G0Z{R}','G31Z{Z}F[{F}*3](PROTECTED MOVE DOWN)','G31X[{X}+{D}*{Q}]F{F}','#27=#5061(SKIP POSITION X)','#140=#27+{D}*{T}/2(EDGE X)','#141={X}','G0X{X}','G0Z{R}']},
  {id:'part-counter',machine:'both',o:9170,name:'Part counter (#3901)',
   desc:'Counts parts: adds 1 to the parts counter #3901. H > 0 also sets the required parts #3902. When the count reaches #3902 it stops with an operator message (#3006); H = 0 keeps the current #3902 (0 = no limit). Put it just before M30.',
   params:[p('H','Required parts (0 = keep)',100,'',{int:true,min:0,max:99999999})],
@@ -50,10 +50,10 @@ const TEMPLATES=[
   desc:'Cuts an OD thread with G92 passes from a WHILE loop: major diameter X, end Z, lead F, thread height K (radius, 0.6134 × pitch for ISO metric), first depth D with degressive depths D × √n, then Q spring passes at the final diameter. Starts from W.',
   params:[p('X','Major diameter',40),p('Z','Thread end Z',-22),p('F','Lead (pitch)',2,'mm'),p('K','Thread height (radius)',1.227),p('D','First pass depth (radius)',0.35),p('Q','Spring passes',1,'',{int:true,min:0,max:10}),p('W','Start Z',5)],
   body:['#30=1(PASS)','#31=0(DEPTH)','G0X[{X}+4.]Z{W}','WHILE[#31 LT {K}]DO{D1}','#31={D}*SQRT[#30]','IF[#31 GT {K}]THEN#31={K}','G92X[{X}-2*#31]Z{Z}F{F}','#30=#30+1','END{D1}','#32=0','WHILE[#32 LT {Q}]DO{D2}','G92X[{X}-2*{K}]Z{Z}F{F}','#32=#32+1','END{D2}','G80(CANCEL G92)','G0X[{X}+4.]Z{W}']},
- {id:'lathe-probe-face',machine:'lathe',o:9240,name:'Probe the part face Z (stub)',setup:['T0101','G97S500M5','G0X60.Z10.'],
-  desc:'Probing-style stub for a touch probe or tool setter: at diameter X it moves from Z start W towards the chuck for up to Q, reads Z (#5002) and stores it in #142 (and the difference to the expected face Z in #143). Feeds per minute (G98) and returns to G99. On the machine this is G31 (skip); the simulator uses G1 and the full search distance.',
+ {id:'lathe-probe-face',machine:'lathe',o:9240,name:'Probe the part face Z (G31)',setup:['T0101','G97S500M5','G0X60.Z10.'],
+  desc:'Probing-style stub for a touch probe or tool setter: at diameter X it moves from Z start W towards the chuck for up to Q, stops at contact with G31 and stores the skip position Z (#5062) in #142 and the difference to the expected face Z in #143. Contact is with the active tool outline (here the T01 insert nose). Feeds per minute (G98) and returns to G99. Without contact G31 runs the full distance and #5062 is its end point.',
   params:[p('X','Probe diameter',20),p('W','Start Z',5),p('Q','Search distance',6),p('Z','Expected face Z',0),p('F','Probe feed',100,'mm/min')],
-  body:['(G31 SKIP ON THE MACHINE - THE SIMULATOR USES G1)','G0X{X}Z{W}','G98(FEED PER MINUTE FOR THE PROBE)','G1Z[{W}-{Q}]F{F}','#142=#5002(Z AT THE SKIP)','#143=#142-{Z}(FACE ERROR)','G0Z{W}','G99']},
+  body:['G0X{X}Z{W}','G98(FEED PER MINUTE FOR THE PROBE)','G31Z[{W}-{Q}]F{F}','#142=#5062(SKIP POSITION Z)','#143=#142-{Z}(FACE ERROR)','G0Z{W}','G99']},
 ];
 const fmt=v=>{const n=Number(v);if(!Number.isFinite(n))return '0';const s=Math.abs(n-Math.round(n))<1e-9?String(Math.round(n))+'.':String(+n.toFixed(4));return s==='-0.'?'0.':s;};
 function forMachine(m,user=[]){return [...TEMPLATES,...user].filter(t=>t.machine===m||t.machine==='both');}

@@ -9,11 +9,12 @@
 (function(root){
 const NodeMacro=typeof require==='function'?(()=>{try{return require('../nc/macro.js');}catch{return null;}})():null;
 const NodeGeo=typeof require==='function'?(()=>{try{return require('../nc/geometry.js');}catch{return null;}})():null;
+const NodeSkip=typeof require==='function'?(()=>{try{return require('../nc/skip.js');}catch{return null;}})():null;
 const NodeData=typeof require==='function'?(()=>{try{return require('../nc/machine.js');}catch{return null;}})():null;
-const Macro=()=>root.FanucMacro||NodeMacro,Geo=()=>root.PathGeometry||NodeGeo,Data=()=>root.MachineData||NodeData;
+const Macro=()=>root.FanucMacro||NodeMacro,Geo=()=>root.PathGeometry||NodeGeo,Data=()=>root.MachineData||NodeData,Skip=()=>root.SkipSim||NodeSkip;
 class LatheError extends Error{constructor(line,msg){super('Line '+line+': '+msg);this.line=line;}}
 const TIPV={0:[0,0],9:[0,0],1:[1,1],2:[1,-1],3:[-1,-1],4:[-1,1],5:[0,1],6:[1,0],7:[0,-1],8:[-1,0]};// [radial, z]
-const ALLOWED_G=new Set([0,1,2,3,4,18,20,21,28,30,32,40,41,42,50,53,54,55,56,57,58,59,70,71,72,73,74,75,76,90,92,94,96,97,98,99,80]);
+const ALLOWED_G=new Set([0,1,2,3,4,31,18,20,21,28,30,32,40,41,42,50,53,54,55,56,57,58,59,70,71,72,73,74,75,76,90,92,94,96,97,98,99,80]);
 const ALLOWED_M=new Set([0,1,2,3,4,5,8,9,30,19,10,11,23,24,41,42,43,44]);
 function tokenize(text,line){const s=text.toUpperCase().replace(/\([^()]*\)/g,'').replace(/;\s*$/,'').trim();if(!s)return [];
  if(/,\s*[CR]/.test(s))throw new LatheError(line,'Direct drawing dimension (,C / ,R chamfer or corner) is not supported');
@@ -24,12 +25,23 @@ function tokenize(text,line){const s=text.toUpperCase().replace(/\([^()]*\)/g,''
 function simulate(src,opt={}){
  const D=Data();const params=opt.params||D.defaultParams('lathe');const work=opt.work||D.defaultWork('lathe');const offs=opt.offsets||D.defaultLatheOffsets();
  const toolLib=new Map((opt.tools||D.LATHE_TOOLS).map(t=>[t.id,t]));
- const pw=new Map([...params].map(([k,v])=>[k,Array.isArray(v)?v.slice():v]));// parameters as they change during the run
+ const cloneP=m=>new Map([...m].map(([k,v])=>[k,Array.isArray(v)?v.slice():v]));const params0=cloneP(params);
+ const pw=cloneP(params);// parameters as they change during the run
  const P=(n,i)=>{const v=pw.get(n);return Array.isArray(v)?v[i??0]:v;};const setP=(n,v)=>{pw.set(n,v);params.set(n,v);};
  const snap=()=>({lrp:(P(1401)>>1)&1,vx:P(1420,0),vz:P(1420,1),f0x:P(1421,0),f0z:P(1421,1),fmax:P(1422)||Infinity,trap:(P(1620,1)||0)/1000,tfeed:(P(1622,1)||0)/1000,smax:P(3772)||Infinity});let pv=snap();
  const notes=[],segs=[];let error=null;
  // Macro expansion first; it also applies parameter/offset writes in order.
- const mac=Macro().execute(src,{machine:'lathe',params,offsets:offs,work,common:opt.common||new Map(),blockSkip:opt.blockSkip!==false,library:opt.library});
+ // G31 contact (opt.skipStock = stock {od,bore,length,face}): at each G31 the blocks so far are interpreted again (opt.blocks),
+ // earlier cuts are swept into a copy of the stock and the G31 move is searched for the first insert contact.
+ let skip=null;
+ if(opt.skipStock&&!opt.blocks&&Skip()){const stk=makeStock(opt.skipStock);let done=0;
+  skip=({blocks:bl})=>{const n=bl.filter(b=>b.text&&/G31(?!\d)/.test(b.text)).length;
+   const pre=simulate(null,{...opt,blocks:bl.slice(),params:cloneP(params0),work:JSON.parse(JSON.stringify(work)),skipStock:null});
+   const segs=pre.segs,ks=[];segs.forEach((s,i)=>{if(s.skip)ks.push(i);});if(ks.length!==n)return null;const k=ks.at(-1);
+   for(let i=done;i<k;i++){const s=segs[i];if(s.rapid||s.len===0)continue;const t=toolLib.get(s.tool);if(t)sweep(stk,stampFor(t,s.noseR,s.tipDir,stk.dz),s.ca,s.cb);}done=Math.max(done,k);
+   const s=segs[k],t=toolLib.get(s.tool),a=s.skip.pa,b=s.skip.pb;const f=t?Skip().latheContact(stk,stampFor(t,s.noseR,s.tipDir,stk.dz),s.ca,s.cb):null;
+   const p=f===null?b:{x:a.x+(b.x-a.x)*f,z:a.z+(b.z-a.z)*f};return {x:p.x,z:p.z,contact:f!==null};};}
+ const mac=opt.blocks?{blocks:opt.blocks,notes:[],error:null,trace:[]}:Macro().execute(src,{machine:'lathe',params,offsets:offs,work,common:opt.common||new Map(),blockSkip:opt.blockSkip!==false,library:opt.library,skip});
  notes.push(...mac.notes.filter(n=>n!==mac.error));
  const blocks=mac.blocks;
  const st={x:0,z:0,motion:0,feedMode:99,css:false,S:0,Vc:0,maxRpm:Infinity,F:0,unit:1,tool:0,off:0,comp:40,spindle:5,coolant:false,wcs:54,cycle:null,cycleArgs:null,rpm:0};
@@ -167,6 +179,9 @@ function simulate(src,opt={}){
   if(gs.includes(53)){const w0=work[st.wcs]||{x:0,z:0},sh=work.shift||{x:0,z:0};rapid(X!==null?X-w0.x-sh.x:st.x,Z!==null?Z-w0.z-sh.z:st.z,{cycle:'G53'});continue;}
   if(!hasAxis)continue;
   const tx=X!==null?X:st.x+(U||0),tz=Z!==null?Z:st.z+(W||0);
+  // G31 skip (one-shot feed): ends at the contact point found by the host (b.skip), else at the target.
+  if(gs.includes(31)){if(!(st.F>0))throw new LatheError(b.line,'G31 without F (alarm 011)');if(st.comp!==40)notes.push('Line '+b.line+': G31 with nose radius compensation active (alarm on the control)');
+   const sk=b.skip,e=sk?{x:sk.x,z:sk.z}:{x:tx,z:tz};push('feed',e,{cycle:'G31',skip:{contact:!!sk?.contact,target:{x:tx,z:tz}}});if(!opt.blocks)notes.push('Line '+b.line+': '+(sk?.contact?`G31 skip: contact at X${e.x.toFixed(3)} Z${e.z.toFixed(3)}`:'G31 skip: no contact, moved the full distance'));continue;}
   if(st.cycle){// X(U), Z(W) and R of G90/G92/G94 are modal while the cycle stays active
    const ca=(motionG===st.cycle||!st.cycleArgs)?{x:st.x,z:st.z,r:0}:st.cycleArgs;const cx=X!==null?X:U!==null?st.x+U:ca.x,cz=Z!==null?Z:W!==null?st.z+W:ca.z,rr=R!==null&&R!==undefined?R:ca.r;st.cycleArgs={x:cx,z:cz,r:rr};const tx=cx,tz=cz;if(st.cycle===90){if(!(st.F>0))throw new LatheError(b.line,'G90 needs F');g90(tx,tz,rr);}else if(st.cycle===94){if(!(st.F>0))throw new LatheError(b.line,'G94 needs F');g94(tx,tz,rr);}else g92(tx,tz,rr,st.F);continue;}
   if(st.motion===0)rapid(tx,tz);else if(st.motion===1)feed(tx,tz);else if(st.motion===32)thread(tx,tz,st.F,{cycle:'G32'});else arc(tx,tz,st.motion===2,w);
@@ -211,7 +226,7 @@ function finishSegments(moves,ctx){const {P,offs,toolLib,work,notes}=ctx;const G
     if(!Number.isFinite(tt)){if(len>0&&!ctx.warnedSpindle){notes.push('Line '+m.line+': feed per revolution with the spindle stopped or S0 — the move would never finish on a real machine (shown at 1 mm/s)');ctx.warnedSpindle=true;}tt=len;}
     t100=tt+(len>0?tfeed:0);tF0=t100;rate=len/(tt/60||1);}
    total+=t100;if(m.kind==='rapid')rapidT+=t100;else cutT+=t100;const rpm=rpmAt(m,b.x);if(rpm)rpmS.push(rpm);
-   out.push({a,b,ca,cb,rapid:m.kind==='rapid',kind:m.kind,cycle:m.cycle||null,line:m.srcLine||m.line,raw:m.srcRaw||m.raw,cycleLine:m.cycle?m.line:null,tool:m.tool,off:m.off,comp:m.comp,t100,tF0,perRev,rate,rpm,spindle:m.spindle,feedMode:m.feedMode,F:m.F,lead:m.lead,threadHeight:m.height,arc:m.arc||null,len,noseR:ti.r,tipDir:ti.tip});}
+   out.push({a,b,ca,cb,rapid:m.kind==='rapid',kind:m.kind,cycle:m.cycle||null,line:m.srcLine||m.line,raw:m.srcRaw||m.raw,cycleLine:m.cycle?m.line:null,tool:m.tool,off:m.off,comp:m.comp,t100,tF0,perRev,rate,rpm,spindle:m.spindle,feedMode:m.feedMode,F:m.F,lead:m.lead,threadHeight:m.height,arc:m.arc||null,len,noseR:ti.r,tipDir:ti.tip,skip:m.skip?{...m.skip,pa:{...m.a},pb:{...m.b}}:null});}
  }
  // Stroke limit check (machine = work + work offset + shift). X in diameter.
  const lim=[P(1320,0),P(1320,1)],nlim=[P(1321,0),P(1321,1)];
