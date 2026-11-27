@@ -56,3 +56,9 @@ body[data-machine=lathe] .viewport #hud{top:0;bottom:0;right:0;left:auto;width:1
  body[data-machine=lathe] .viewport .currenttool{right:14px}
 }
 .stockauto{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:8px 0;font-size:12px;color:var(--muted)}.stockauto label{display:flex;align-items:center;gap:6px}.stockauto input[type=number]{width:72px}
+
+/* Work zero + G54 in the stock dialogs (fixed grid, no reflow when modes change). */
+.stockzero,.stockg54{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;margin:10px 0}.stockg54{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stockzero label,.stockg54 label{display:grid;gap:4px;color:var(--muted);font-size:12px}.stockzero input,.stockzero select,.stockg54 input{width:100%;min-width:0}
+.stockg54>span{grid-column:1/-1;color:var(--muted);font-size:11px}
+@media(max-width:520px){.stockzero{grid-template-columns:repeat(2,minmax(0,1fr))}}
