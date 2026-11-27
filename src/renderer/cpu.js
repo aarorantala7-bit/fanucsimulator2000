@@ -62,7 +62,7 @@ function surfaceGeometry(st){
 }
 function renderSmoothStock(st,project,w,h){
   const start=performance.now(),ss=cadSampleScale(w,h),W=Math.max(1,Math.round(w*ss)),H=Math.max(1,Math.round(h*ss));
-  const key=[w,h,yaw,pitch,zoom].join('|');
+  const key=[w,h,yaw,pitch,zoom,panX,panY].join('|');
   if(cacheStock===st&&cacheRevision===surfaceRevision&&cacheView===key){renderStats.hits++;compositeStock(surfaceCanvas,w,h);renderStats.ms=performance.now()-start;return;}
   if(surfaceCanvas.width!==W||surfaceCanvas.height!==H||!surfacePixels){surfaceCanvas.width=W;surfaceCanvas.height=H;surfacePixels=surfaceCtx.createImageData(W,H);surfaceDepth=new Float32Array(W*H);}
   const material=cadMaterial(),rgba=surfacePixels.data;rgba.fill(0);surfaceDepth.fill(Infinity);const sx=W/w,sy=H/h;
