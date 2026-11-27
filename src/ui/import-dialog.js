@@ -90,3 +90,5 @@ function appendPreview(){const text=$('photopreview').value.replace(/\r\n?/g,'\n
 if(typeof document!=='undefined'&&document.getElementById('open')){buildUi();hookToolTables();}
 return {get pages(){return pages;},get meta(){return wincamMeta;},get programTools(){return programTools;},applyTools,getWorker,preprocess,exportWincam,lastExport:null};
 })();
+// Last script: tells the inline load check in index.html that the app started.
+globalThis.__fanucReady=true;

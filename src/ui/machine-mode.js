@@ -24,8 +24,9 @@
  $('seek').oninput=e=>{if(lathe()){if(editTimer!==null)return;LatheView.playing=false;LatheView.seek(Number(e.target.value));}else orig.seek(e);};
  $('load').onclick=e=>{if(lathe()){cancelProgramEdit();LatheView.load($('source').value);}else orig.load(e);saveDoc();globalThis.CncPanel?.refresh(true);};
  // ---- auto stock settings (margin %, keep manual size), shared by both machines ----
- try{const sv=JSON.parse(localStorage.getItem('fanucsim.stock')||'{}');if(sv.margin>=0)SimRuntime.state.stockMargin=+sv.margin;SimRuntime.state.keepManualStock=!!sv.keep;}catch{}
- const saveStockPrefs=()=>{try{localStorage.setItem('fanucsim.stock',JSON.stringify({margin:SimRuntime.state.stockMargin,keep:SimRuntime.state.keepManualStock}));}catch{}};
+ try{const sv=JSON.parse(localStorage.getItem('fanucsim.stock')||'{}');if(sv.margin>=0)SimRuntime.state.stockMargin=+sv.margin;SimRuntime.state.keepManualStock=!!sv.keep;if(sv.zero&&['center','corner','custom','fit'].includes(sv.zero.mode))SimRuntime.state.millZero={mode:sv.zero.mode,x:+sv.zero.x||0,y:+sv.zero.y||0,z:+sv.zero.z||0};}catch{}
+ const saveStockPrefs=()=>{try{localStorage.setItem('fanucsim.stock',JSON.stringify({margin:SimRuntime.state.stockMargin,keep:SimRuntime.state.keepManualStock,zero:SimRuntime.state.millZero}));}catch{}};
+ globalThis.saveStockPrefs=saveStockPrefs;
  const syncStockUi=()=>{for(const e of document.querySelectorAll('.stockmargin'))e.value=SimRuntime.state.stockMargin;for(const e of document.querySelectorAll('.stockkeep'))e.checked=SimRuntime.state.keepManualStock;};
  for(const e of document.querySelectorAll('.stockmargin'))e.onchange=()=>{const v=Math.max(0,Math.min(200,Number(e.value)));if(!Number.isFinite(v))return;SimRuntime.state.stockMargin=v;saveStockPrefs();syncStockUi();
   if(lathe()){if(LatheView.autoStock){LatheView.load($('source').value);LatheView.fit();}}else if(stockConfig===null){applyStock(null);if(typeof stockPreview==='function')stockPreview();}};
