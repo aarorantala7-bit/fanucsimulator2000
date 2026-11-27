@@ -2,7 +2,7 @@
 // Shared playback clock for Milling and Turning: real-time sample durations with feed, rapid and
 // spindle overrides, single block, M00/M01 stops and feed hold. Pure logic, no DOM.
 (function(root){
-const state={stockMargin:10,keepManualStock:false,feedOv:100,rapidOv:100,spindleOv:100,singleBlock:false,optStop:false,blockSkip:true,budget:0};
+const state={stockMargin:10,keepManualStock:false,millZero:{mode:'center',x:0,y:0,z:0},feedOv:100,rapidOv:100,spindleOv:100,singleBlock:false,optStop:false,blockSkip:true,budget:0};
 const LEGACY=1/55;// samples per second used by the original viewer for programs without timing
 function duration(sample,seg){if(!seg)return LEGACY;if(seg.t100===undefined)return LEGACY;const n=sample.n||1;
  if(seg.kind==='stop')return 0;if(seg.kind==='dwell')return seg.t100/n;
@@ -54,8 +54,25 @@ function latheWorkArea(segs,pct=10){let xmax=0,zmin=Infinity,n=0;
  for(const s of segs){if(s.rapid||(s.kind!=='feed'&&s.kind!=='thread')||(s.cycle&&/G28|G30|G53/.test(s.cycle)))continue;xmax=Math.max(xmax,s.a.x,s.b.x);zmin=Math.min(zmin,s.a.z,s.b.z);n++;}
  if(!n||!(xmax>0))return null;const work=Math.max(1,-Math.min(0,zmin)),round=v=>Math.ceil(v*2)/2;
  return {od:round(xmax*(1+pct/100)),length:round(work*(1+pct/100)),face:round(Math.max(0.5,work*pct/200)),work:{od:xmax,length:work}};}
+// Work zero on the stock (program X0 Y0 Z0). Mill zero {mode,x,y,z}: 'center' = X0 Y0 at the stock centre (default),
+// 'corner' = front-left corner, 'custom' = x/y from the left/front edge, 'fit' = auto size around the cut area as the program
+// places it. z = Z0 below the top surface (0 = Z0 on top). Returns the blank in work coordinates.
+function placeMillStock(size,wa,zero){const z=zero||{},m=z.mode||'center',top=Math.max(0,Number(z.z)||0),cx=Math.max(0,Number(z.x)||0),cy=Math.max(0,Number(z.y)||0);
+ if(size){const [x0,y0]=m==='corner'?[0,0]:m==='custom'?[-cx,-cy]:[-size.x/2,-size.y/2];return {x0,x1:x0+size.x,y0,y1:y0+size.y,top,bottom:top-size.z,outside:false};}
+ if(!wa)return null;let x0,x1,y0,y1;
+ if(m==='fit'){x0=wa.x0;x1=wa.x1;y0=wa.y0;y1=wa.y1;}
+ else if(m==='corner'||m==='custom'){x0=m==='corner'?0:-cx;y0=m==='corner'?0:-cy;x1=Math.max(wa.x1,x0+1);y1=Math.max(wa.y1,y0+1);}
+ else{const hx=Math.max(-wa.x0,wa.x1,.5),hy=Math.max(-wa.y0,wa.y1,.5);x0=-hx;x1=hx;y0=-hy;y1=hy;}
+ return {x0,x1,y0,y1,top,bottom:-wa.depth,outside:wa.x0<x0-1e-6||wa.y0<y0-1e-6};}
+// Lathe zero: X0 is always the spindle centreline. Z0 {mode,z}: 'face' = on the finished part face, the stock front is the
+// face allowance (default); 'front' = on the stock front end; 'custom' = the stock front is z mm in front of Z0.
+// Auto size: the cut length is measured from Z0, so the stock front moves with the zero and the length follows.
+function placeLatheStock(wa,zero,pct=10){if(!wa)return null;const z=zero||{},m=z.mode||'face',round=v=>Math.ceil(v*2)/2;
+ if(m==='front')return {od:wa.od,length:wa.length,face:0};
+ if(m==='custom'){const f=Number(z.z)||0;return {od:wa.od,length:round(Math.max(1,wa.work.length+Math.max(0,f))*(1+pct/100)),face:f};}
+ return {od:wa.od,length:wa.length,face:wa.face};}
 function reset(){state.budget=0;}
 function fmtTime(t){if(!Number.isFinite(t))return '—';const m=Math.floor(t/60),s=t-m*60;return (m?m+'m ':'')+s.toFixed(1)+'s';}
-const api={state,duration,step,reset,fmtTime,LEGACY,segDuration,blockDuration,makeBlocks,stepBlocks,locate,polylines,millWorkArea,latheWorkArea,programNumber};
+const api={state,duration,step,reset,fmtTime,LEGACY,segDuration,blockDuration,makeBlocks,stepBlocks,locate,polylines,millWorkArea,latheWorkArea,programNumber,placeMillStock,placeLatheStock};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.SimRuntime=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
