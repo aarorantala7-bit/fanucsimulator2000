@@ -62,7 +62,7 @@ function simulate(src,opt={}){
   const r=Math.hypot(p0.a-c.a,p0.b-c.b);let a0=Math.atan2(p0.b-c.b,p0.a-c.a),a1=Math.atan2(p1.b-c.b,p1.a-c.a);let d=a1-a0;
   if(cw){while(d>=-1e-12)d-=2*Math.PI;}else{while(d<=1e-12)d+=2*Math.PI;}
   if(chord<1e-9)d=cw?-2*Math.PI:2*Math.PI;
-  const steps=Math.max(4,Math.ceil(Math.abs(d)/(Math.PI/90)));
+  const da=r>0.0025?2*Math.acos(Math.max(-1,1-0.005/r)):Math.PI/2;const steps=Math.min(720,Math.max(1,Math.ceil(Math.abs(d)/(Math.PI/2)),Math.ceil(Math.abs(d)/Math.max(1e-6,da))));// chord error ≤ 0.005 mm
   if(!(st.F>0))throw new LatheError(cur.line,'Arc without F (alarm 011)');
   const id=moves.length;for(let k=1;k<=steps;k++){const t=a0+d*k/steps;const q=k===steps?{x,z}:{x:2*(c.b+r*Math.sin(t)),z:c.a+r*Math.cos(t)};push('feed',q,{arc:{cw,cz:c.a,cr:c.b,r,id},...extra});}
  }
@@ -109,7 +109,7 @@ function simulate(src,opt={}){
  function g94(X,Z,R){const A={x:st.x,z:st.z},tag={cycle:'G94'};rapid(A.x,Z+R,tag);feed(X,Z,tag);feed(X,A.z,tag);rapid(A.x,A.z,tag);}
  function g92(X,Z,R,lead){const A={x:st.x,z:st.z},tag={cycle:'G92'};const ch=(P(5130)||0)*lead/10,sz=Math.sign(Z-A.z)||-1,sx=Math.sign(A.x-X)||1;
   rapid(X+2*R,A.z,tag);if(ch>0){thread(X,Z-sz*ch,lead,tag);thread(X+sx*2*ch,Z,lead,tag);}else thread(X,Z,lead,tag);rapid(A.x,st.z,tag);rapid(A.x,A.z,tag);}
- function g76(X,Z,i,k,dd,lead,m,rr,ang,dmin,allow){const A={x:st.x,z:st.z},tag={cycle:'G76'};const sx=Math.sign(X-A.x)||-1,sz=Math.sign(Z-A.z)||-1;// sx<0: OD thread
+ function g76(X,Z,i,k,dd,lead,m,rr,ang,dmin,allow){const A={x:st.x,z:st.z},tag={cycle:'G76',height:k};const sx=Math.sign(X-A.x)||-1,sz=Math.sign(Z-A.z)||-1;// sx<0: OD thread
   const top=X-sx*2*k;const depths=[];let n=1,prev=0;const roughEnd=Math.max(0,k-allow);
   while(prev<roughEnd-1e-9&&n<200){let d=dd*Math.sqrt(n);if(d-prev<dmin)d=prev+dmin;d=Math.min(d,roughEnd);depths.push(d);prev=d;n++;}
   for(let j=0;j<Math.max(1,m);j++)depths.push(k);
@@ -211,7 +211,7 @@ function finishSegments(moves,ctx){const {P,offs,toolLib,work,notes}=ctx;const G
     if(!Number.isFinite(tt)){if(len>0&&!ctx.warnedSpindle){notes.push('Line '+m.line+': feed per revolution with the spindle stopped or S0 — the move would never finish on a real machine (shown at 1 mm/s)');ctx.warnedSpindle=true;}tt=len;}
     t100=tt+(len>0?tfeed:0);tF0=t100;rate=len/(tt/60||1);}
    total+=t100;if(m.kind==='rapid')rapidT+=t100;else cutT+=t100;const rpm=rpmAt(m,b.x);if(rpm)rpmS.push(rpm);
-   out.push({a,b,ca,cb,rapid:m.kind==='rapid',kind:m.kind,cycle:m.cycle||null,line:m.srcLine||m.line,raw:m.srcRaw||m.raw,cycleLine:m.cycle?m.line:null,tool:m.tool,off:m.off,comp:m.comp,t100,tF0,perRev,rate,rpm,spindle:m.spindle,feedMode:m.feedMode,F:m.F,lead:m.lead,arc:m.arc||null,len,noseR:ti.r,tipDir:ti.tip});}
+   out.push({a,b,ca,cb,rapid:m.kind==='rapid',kind:m.kind,cycle:m.cycle||null,line:m.srcLine||m.line,raw:m.srcRaw||m.raw,cycleLine:m.cycle?m.line:null,tool:m.tool,off:m.off,comp:m.comp,t100,tF0,perRev,rate,rpm,spindle:m.spindle,feedMode:m.feedMode,F:m.F,lead:m.lead,threadHeight:m.height,arc:m.arc||null,len,noseR:ti.r,tipDir:ti.tip});}
  }
  // Stroke limit check (machine = work + work offset + shift). X in diameter.
  const lim=[P(1320,0),P(1320,1)],nlim=[P(1321,0),P(1321,1)];
@@ -250,7 +250,20 @@ function stampAt(stock,s,cz,cr){let removed=0;const base=Math.round((cz-stock.z0
  if(removed)stock.rev++;return removed;}
 function sweep(stock,s,ca,cb,step){const len=Math.hypot(cb.a-ca.a,cb.b-ca.b);const n=Math.max(1,Math.ceil(len/(step||Math.max(stock.dz,0.05))));let r=0;for(let k=1;k<=n;k++){const t=k/n;r+=stampAt(stock,s,ca.a+(cb.a-ca.a)*t,ca.b+(cb.b-ca.b)*t);}return r;}
 // Cut a whole simulated program into a stock (used by tests and the "final part" view).
+// Threads cut by G32 / G92 / G76: grouped passes with lead, Z range, root (deepest pass) and crest diameters.
+// crest = the last turned/bored diameter over that length before threading; height = G76 P when programmed.
+function threads(result,tools){const segs=result.segs||[],lib=new Map((tools||Data().LATHE_TOOLS).map(t=>[t.id,t]));const out=[];
+ segs.forEach((s,i)=>{if(s.kind!=='thread')return;const dz=Math.abs(s.b.z-s.a.z),dr=Math.abs(s.b.x-s.a.x)/2;if(dz<1e-6||dz<=1.5*dr)return;// straight passes only (pull-out chamfers skipped)
+  const z0=Math.min(s.a.z,s.b.z),z1=Math.max(s.a.z,s.b.z),t=lib.get(s.tool),id=!!t&&(t.type==='thread-id'||t.type==='id');
+  let th=out.find(o=>Math.abs(o.lead-s.lead)<1e-9&&o.id===id&&o.z0<z1&&z0<o.z1);
+  if(!th){th={lead:s.lead,id,z0,z1,cycle:s.cycle||'G32',height:s.threadHeight??null,first:i,last:i,passes:[]};out.push(th);}
+  th.z0=Math.min(th.z0,z0);th.z1=Math.max(th.z1,z1);th.last=i;th.passes.push({i,x:id?Math.max(s.a.x,s.b.x):Math.min(s.a.x,s.b.x)});});
+ for(const th of out){const xs=th.passes.map(p=>p.x);th.root=th.id?Math.max(...xs):Math.min(...xs);th.crest=null;
+  for(let k=th.first-1;k>=0;k--){const s=segs[k];if(s.rapid||s.kind!=='feed')continue;const dz=Math.abs(s.b.z-s.a.z),dr=Math.abs(s.b.x-s.a.x)/2;if(dz<=1.5*dr)continue;
+   const ov=Math.min(th.z1,Math.max(s.a.z,s.b.z))-Math.max(th.z0,Math.min(s.a.z,s.b.z));if(ov<0.3*(th.z1-th.z0))continue;const x=(s.a.x+s.b.x)/2;if(th.id?x<th.root:x>th.root){th.crest=x;break;}}
+  const h=th.height??0.6134*th.lead;if(th.crest===null)th.crest=th.root+(th.id?-2:2)*h;th.depth=Math.abs(th.crest-th.root)/2;}
+ return out;}
 function cutAll(result,stock,tools){const lib=new Map((tools||Data().LATHE_TOOLS).map(t=>[t.id,t]));let removed=0;for(const s of result.segs){if(s.rapid||s.len===0)continue;const t=lib.get(s.tool);if(!t)continue;const st=stampFor(t,s.noseR,s.tipDir,stock.dz);removed+=sweep(stock,st,s.ca,s.cb);}return removed;}
-const api={simulate,tokenize,toolOutline,stampFor,stampAt,sweep,makeStock,cutAll,TIPV,LatheError};
+const api={threads,simulate,tokenize,toolOutline,stampFor,stampAt,sweep,makeStock,cutAll,TIPV,LatheError};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.LatheSim=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
