@@ -1,5 +1,7 @@
 'use strict';
 // Milling interpreter (FANUC M series subset). Input is program text or blocks from FanucMacro.
+// Adaptive arc segmentation: chord error ≤ tol (mm), at least one chord per 90°, at most 720 chords.
+function arcSteps(r,d,tol){const da=r>tol/2?2*Math.acos(Math.max(-1,1-tol/r)):Math.PI/2;return Math.min(720,Math.max(1,Math.ceil(Math.abs(d)/(Math.PI/2)),Math.ceil(Math.abs(d)/Math.max(1e-6,da))));}
 // Output segments keep the original shape {a,b,rapid,tool,line,raw} and add timing/spindle data.
 // opt: {blockSkip, params, offsets:{h,d}, work, tools(Map id->{width}), library}
 function parse(src,opt={}){
@@ -74,7 +76,7 @@ function parse(src,opt={}){
    const r=Math.hypot(p.x-cx,p.y-cy),r2=Math.hypot(q.x-cx,q.y-cy);if(r<1e-9||Math.abs(r-r2)>Math.max(.001,r*.001)){warn(meta.line,'Arc endpoints do not match center; stopped.');break}
    if(!(F>0)){warn(meta.line,'Arc without F (alarm 011); stopped.');break}
    const a=Math.atan2(p.y-cy,p.x-cx),b=Math.atan2(q.y-cy,q.x-cx);let d=b-a;if(motion===2){while(d>=-1e-10)d-=Math.PI*2;}else{while(d<=1e-10)d+=Math.PI*2;}
-   let prev=p,steps=Math.min(160,Math.max(8,Math.ceil(Math.abs(d)*20)));for(let j=1;j<=steps;j++){const t=j/steps,v=j===steps?q:{x:cx+r*Math.cos(a+d*t),y:cy+r*Math.sin(a+d*t),z:p.z+(q.z-p.z)*t};add(prev,v,{rapid:false,kind:'feed'},meta);prev=v;}}
+   let prev=p,steps=arcSteps(r,d,0.01);for(let j=1;j<=steps;j++){const t=j/steps,v=j===steps?q:{x:cx+r*Math.cos(a+d*t),y:cy+r*Math.sin(a+d*t),z:p.z+(q.z-p.z)*t};add(prev,v,{rapid:false,kind:'feed'},meta);prev=v;}}
   p=q;if(s.length>16000){warn(meta.line,'Preview geometry limit reached.');break}}
  millCompensate(s,offsets,opt.tools||globalThis.tools,notes);
  millTiming(s,notes);
