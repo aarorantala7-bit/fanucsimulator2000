@@ -1,72 +1,34 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational visualization prototype. Development baseline: **v0.51**. Not affiliated with FANUC.
+Independent, browser-based educational simulator for FANUC-style programs. Version **v0.60**. Not affiliated with FANUC.
 
 ## Run
 
-Download or clone the repository, then open `index.html` in a modern browser. No dependencies or machine connection are required. If local-file loading is restricted, serve the folder with a local static web server.
+Open `index.html` in a modern browser (or serve the folder with any static web server). No dependencies or machine connection.
 
-The application has a 3D viewport, program editor, virtual stock and tools, a simulation-only macro inspector, and hybrid WebGL 2 / CPU software rendering. Choose the backend in View > Graphics settings. The startup program demo uses ordinary unwrapped viewer input; four new macro graphics demos use the independent arithmetic sandbox to draw abstract color, mosaic, wave and rosette patterns. Their values never affect CNC motion or stock. The Help menu contains a searchable, read-only G/M terminology reference with 76 entries, category filtering, conceptual diagrams, individual word annotations, non-executable examples and viewer status. It is not an operating guide; tool-specific path colors, a legend and active tool name are displayed in the viewport. The tool library includes 65 editable visual presets with manufacturer, category and family selectors. Family labels are catalog-inspired; geometry is synthetic and not certified manufacturer data. The Default library adds finishing, angle, disk and specialty profiles. Newly modeled specialty silhouettes are display-only and do not remove virtual stock; the existing flat, rounded, ball and pointed profiles retain approximate surface visualization.
+## What it does
 
-The Inspect menu also contains a separate arithmetic calculator with numbered variables, bracketed expressions, degree-based trigonometry, conditions, bounded calculation-only loops, comment descriptions and stepwise value inspection. It does not execute CNC commands, affect motion or change stock.
-
-Graphics settings include Performance, Balanced and CAD Ultra display presets, studio lighting, three display materials and optional soft silhouette shadows. These are display-only changes; underlying geometry and playback remain unchanged. CAD Ultra increases screen sampling and can be slower on CPU. Hardware WebGL testing remains pending.
-
-The main program editor now has a dark CMD-inspired theme. File > Parameter demo · 3D draft loads a calculation-only rosette overlay into the main viewport. The main playback controls and macro inspector track its arithmetic steps; editing resets playback. The overlay does not generate CNC commands or change virtual stock.
-
-File > Parameter demo · Material study adds a parameter-driven display morph with an animated non-contact reference model synchronized to playback and center-section diagram. The temporary display mesh is independent of actual stock and motion; no tool contact or cutting computation is performed.
-
-File > Macro demo · Combined graphics uses numbered parameters, nested arithmetic loops and simulator-specific DRAW statements to display an abstract mosaic. It shares the calculation timeline and main viewport; no machine motion or stock writes occur.
-
-The code reference includes expanded illustrated concept cards, labeled geometry and section sketches, and a comparison of milling and turning meanings for G76. Examples are non-executable and do not include machine settings or machining sequences.
-
-The reference cards now separate documented address-letter terminology into individual rows and show non-executable illustration pseudocode for every entry. G76 includes the terminology from the supplied turning reference, explicitly distinct from milling G76. Coverage is not a complete or validated controller syntax specification.
-
-The reference uses a searchable dropdown and full-width details on mobile and desktop, with compact address-letter tables and horizontally scrollable illustration code panels.
-
-The optional CNC-inspired text keypad is accessible from the program editor header. It provides grouped cream-colored keys, a separate number pad, shifted text symbols and navigation, with no machine controls. The layout is visually inspired by the user-provided panel; alternate key assignments are simulator-specific. The reference panel displays actual code identifiers instead of invented pseudocode.
-
-The compact keypad retains only the selected letter, number, shift and navigation keys. EOB inserts a newline only; an optional visual semicolon marker is independent of the saved editor text.
-
-Physical and virtual keyboard input use the same uppercase text formatting and simple letter-number word spacing while typing. Enter and EOB insert a newline; visual EOB markers remain independent of stored text. Paste is uppercased but not automatically respaced, and compound expressions retain their existing whitespace.
-
-Normal and CNC Panel are two text-editing presentations of the same document. The CNC Panel has a pending-text bar, line and column indicator, virtual text-edit keys and buffered EOB committed by INSERT or INPUT. These are editor functions only, not machine controls or a controller emulator.
-
-The CNC Panel displays a persistent whole-word text cursor. Horizontal navigation visits whitespace-delimited words and the empty block at each line end. Normal text editing remains unchanged.
-
-The empty CNC Panel cursor blinks once per second, while word highlights remain steady. The animation respects reduced-motion preferences.
-
-Buffered editor commits now preserve simple word spacing across INSERT and INPUT actions without adding indentation after EOB.
-
-The reference detail card now presents the code title and existing letter annotations rather than an isolated identifier. It remains a non-executable terminology reference.
-
-The reference example panel uses multi-line comment-only notation illustrations derived from existing address-letter annotations. It contains no machining sequence or machine settings.
-
-Reference cards distinguish terminology coverage, controller context and viewer compatibility. They explicitly mark required/optional address status and validated syntax as unestablished. G76 turning terminology is kept separate from the milling concept.
-
-Reference cards now display compact visual notation using the selected identifier and already documented address-letter labels. Separators and placeholders are non-executable; no controller syntax validation or additional machining settings are included.
-
-The application is again a single Milling visualization workspace. The experimental Turning workspace and its demo modules have been removed. Existing locally stored Turning text is not erased by this update. The shared G/M terminology reference, single-space notation and whole-word DELETE correction are retained.
+- **One machine selector** (menu bar, *Machine*): **Milling (0i-MF style, 3-axis)** or **Turning (0i-TF style, 2-axis lathe)**. It switches the simulator and views, the CNC panel, the tool library, the stock setup, the demos and the G/M code library together, and is remembered. Each machine keeps its own editor document.
+- **Milling**: G0/G1/G2/G3 (I J or R), G4, G17, G20/G21, G28, G40/G41/G42 cutter compensation (D), G43/G49 (H), G53, G54–G59, G73/G76/G81–G89 drilling cycles, G90/G91, G94/G95, G98/G99, M0/M1/M3/M4/M5/M6/M8/M9/M19/M29/M30. Unknown machine-specific M codes (e.g. M46, M50) are no-ops with a note.
+- **Turning**: X is a diameter, U/W incremental, G2/G3 with R or I/K (rear-turret convention: +X up, +Z right), G32, G4, G28/G30, G50 (speed clamp and coordinate setting), G53, G54–G59, G90/G92/G94 (modal), G70/G71/G72/G73/G74/G75/G76 (two-block formats), G96/G97, G98/G99, Txxyy with geometry/wear offsets (X Z R T) and tool nose radius compensation G41/G42.
+- **Custom macro B** for both machines: local #1–#33 (per G65 call), common #100–#199 / #500–#999 (retained), arithmetic and functions, IF[..]GOTO / IF[..]THEN, GOTO (forward search first), WHILE[..]DOm / ENDm, G65 argument mapping, M98/M99, nesting limits, system variables (#3000, #3006, #3901, #4001…, #5001…, #5021…, #5201… work offsets, tool offsets), PRM[], G10 L2 / L10–L13 / P / L52.
+- **Parameters** (Setup › Parameters or CNC panel SYSTEM): rapid type 1401 LRP, rapid rates 1420, F0 1421, max feed 1422, jog 1423/1424, reference 1240, stroke limits 1320/1321, accel time constants 1620/1622, DPI 3401, power-on G01 3402, spindle clamp 3772, cycle parameters 5130–5143. Changes made by a program (G10 L52) take effect from that block on.
+- **Real-time playback** from programmed feeds and rapid rates with feed (0–150 %), rapid (F0/25/50/100 %) and spindle overrides, single block, optional stop (M01), block skip (/), dwell and cycle time estimate.
+- **Tools and stock**: editable mill tools (diameter, corner radius, flute and overall length, point angle; H/D offsets) and lathe inserts (ISO shape C/D/V/W/T/S/R, nose radius, tip T0–T9, holder angle, groove/thread width), saved in the browser with reset. Lathe stock is a solid bar or a tube (OD, bore, length, face). Material removal uses the actual tool outline.
+- **CNC panel** (Program › CNC Panel): POS / PROG / OFS/SET / SYSTEM / MESSAGE screens, EDIT / MEM / MDI / JOG / HANDLE / REF modes, CYCLE START / FEED HOLD / RESET, word-based INSERT / ALTER / DELETE, CAN, EOB, O-number and word search, program directory.
+- **G/M code library** (Help) with separate Milling and Turning entries, realistic examples and address tables.
 
 ## Project layout
 
-- `src/state.js`: shared application state.
-- `src/simulation/`: virtual program interpretation and stock visualization.
-- `src/macros/`: simulation-only macro expansion.
-- `src/tools/`: editable virtual tool geometry.
-- `src/renderer/`: CPU, GPU and viewport drawing.
-- `src/ui/`: menus, controls, HUD and styles.
-- `assets/`: project logo.
-- `tests/`: dependency-free source checks.
+- `src/nc/`: machine data and parameters, macro executor, offset geometry.
+- `src/simulation/`: mill interpreter and stock. `src/lathe/`: lathe interpreter, removal model and view.
+- `src/sim/runtime.js`: shared real-time playback clock.
+- `src/renderer/`: CPU, GPU and viewport drawing. `src/tools/`: mill tool library.
+- `src/ui/`: menus, CNC panel, machine selector, code library, demos, HUD.
+- `tests/`: `npm test` (source checks + node:test unit tests); `tests/headless_check.py` browser check (python playwright + Chrome).
 
-These are ordered classic JavaScript scripts with shared state, not independent ES modules yet. This preserves the original offline prototype's behavior during the initial split.
-
-Run `npm test` with Node.js installed to check syntax and source references. Run `npm run build` to generate a self-contained HTML preview in `dist/`.
-
-## Development
-
-Keep `main` as the testable baseline. Use `develop` and feature branches for changes, then review them in pull requests. Priorities: hardware GPU verification, improved visual contour reconstruction, and eventual standalone packaging.
+Ordered classic scripts with shared state; the simulation modules are UMD so the tests run them in Node.
 
 ## Limitations
 
-Educational visualization only. No machine control, safety or collision validation, certified tool data, native Macro B execution, or machining verification. The approximate heightfield geometry is not a CAD solid. The GPU path needs hardware testing; CPU fallback remains available.
+Educational visualization only: no machine control, no collision checking, no certified tool data. The mill stock is a height field, the lathe stock a per-Z radius profile. Behaviour follows the FANUC 0i manuals as closely as practical, but machine builders change many details (M codes, parameters, G code system); always check against your machine's documentation.

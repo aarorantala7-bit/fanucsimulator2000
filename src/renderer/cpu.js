@@ -8,9 +8,14 @@ const cadMaterials={steel:[185,195,205],aluminium:[222,228,234],matte:[181,188,1
 function cadMaterial(){return cadMaterials[$('material').value]||cadMaterials.steel;}
 function cadSampleScale(w,h){return Math.min(({performance:1,balanced:1.6,ultra:2.2})[$('quality').value]||1.6,Math.sqrt(4200000/Math.max(1,w*h)));}
 function compositeStock(image,w,h){ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';if($('softshadow').checked){ctx.shadowColor='rgba(42,56,74,0.23)';ctx.shadowBlur=18;ctx.shadowOffsetY=8;}ctx.drawImage(image,0,0,w,h);ctx.restore();}
+let surfaceBuf=null,meshBuiltAt=0,meshBuildMs=0,meshCatchUp=0;
 function surfaceGeometry(st){
   if(meshStock===st&&meshRevision===surfaceRevision){renderStats.meshMs=0;return mesh;}
-  const meshStart=performance.now();
+  // Perf: while the program plays, rebuild the surface mesh at most every max(120 ms, 4 x last build time).
+  // The tool keeps moving every frame; the cut surface catches up a few times a second and is exact when paused.
+  const meshNow=performance.now();
+  if(meshStock===st&&mesh&&playing&&meshNow-meshBuiltAt<Math.max(120,4*meshBuildMs)){renderStats.meshMs=0;if(!meshCatchUp)meshCatchUp=setTimeout(()=>{meshCatchUp=0;dirty=true;},Math.max(120,4*meshBuildMs));return mesh;}
+  const meshStart=meshNow;
   const nx=st.nx,ny=st.ny,C=nx+2,R=ny+2;
   const xs=Float64Array.from({length:C},(_,i)=>i===0?st.x0:i===C-1?st.x1:st.x0+(i-.5)*st.dx);
   const ys=Float64Array.from({length:R},(_,i)=>i===0?st.y0:i===R-1?st.y1:st.y0+(i-.5)*st.dy);
@@ -31,7 +36,8 @@ function surfaceGeometry(st){
     const matte=lighting==='flat';
     return (matte?.86:.80)+(matte?.095:.13)*Math.max(0,nz)+(matte?.025:.065)*(-.55*nx+.45*ny+.35*nz)-.035*clamp(-z/Math.max(1,st.extent*.15),0,1);
   };
-  const heights=new Float64Array(C*R),lights=new Float64Array(C*R);
+  // Perf: reuse the height/light buffers when the grid size is unchanged (the previous mesh is replaced below).
+  if(!surfaceBuf||surfaceBuf.n!==C*R)surfaceBuf={n:C*R,a:[new Float64Array(C*R),new Float64Array(C*R)],b:[new Float64Array(C*R),new Float64Array(C*R)]};surfaceBuf.flip=!surfaceBuf.flip;const [heights,lights]=surfaceBuf.flip?surfaceBuf.a:surfaceBuf.b;
   const radius=lighting==='original'?.5:2.5, reach=Math.ceil(radius)+1;
   for(let j=0;j<R;j++)for(let i=0;i<C;i++){
     const x=xs[i],y=ys[j],k=j*C+i,z=at(i-1,j-1);
@@ -52,7 +58,7 @@ function surfaceGeometry(st){
     else {tile(i,j,ii,n);tile(i,n,ii,jj);}
   }
   for(let j=0;j<R-1;j+=16)for(let i=0;i<C-1;i+=16)tile(i,j,Math.min(i+16,C-1),Math.min(j+16,R-1));
-  mesh={xs,ys,C,R,heights,lights,quads,light};meshStock=st;meshRevision=surfaceRevision;renderStats.meshMs=performance.now()-meshStart;return mesh;
+  mesh={xs,ys,C,R,heights,lights,quads,light};meshStock=st;meshRevision=surfaceRevision;renderStats.meshMs=performance.now()-meshStart;meshBuiltAt=performance.now();meshBuildMs=renderStats.meshMs;return mesh;
 }
 function renderSmoothStock(st,project,w,h){
   const start=performance.now(),ss=cadSampleScale(w,h),W=Math.max(1,Math.round(w*ss)),H=Math.max(1,Math.round(h*ss));
