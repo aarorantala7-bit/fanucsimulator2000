@@ -21,7 +21,7 @@ function parse(src,opt={}){
  let lines;
  if(Array.isArray(src))lines=src;else{const L=src.split(/\r?\n/);if(L.length>15000)return {s,notes:['File too large for this preview (15,000 lines maximum).']};lines=L.map((raw,i)=>({text:raw,raw,line:i+1,virtual:true}));}
  const dpi=P(3401)&1;
- const add=(a,b,extra,meta)=>{s.push({a:cp(a),b:cp(b),rapid:extra.rapid??motion===0,tool,line:meta.line,raw:meta.raw,kind:extra.kind||(extra.rapid??motion===0?'rapid':'feed'),F,feedMode,S,spindle,coolant,comp,D,H,cycle:extra.cycle||null,dwell:extra.dwell||0,stop:extra.stop||null,lead:extra.lead||0,traceIndex:meta.ti,pv});};
+ const add=(a,b,extra,meta)=>{s.push({a:cp(a),b:cp(b),rapid:extra.rapid??motion===0,tool,line:meta.line,raw:meta.raw,kind:extra.kind||(extra.rapid??motion===0?'rapid':'feed'),F,feedMode,S,spindle,coolant,comp,D,H,cycle:extra.cycle||null,dwell:extra.dwell||0,stop:extra.stop||null,lead:extra.lead||0,traceIndex:meta.ti,pv,skip:extra.skip||null});};
  for(let n=0;n<lines.length;n++){const meta=lines[n];const raw=meta.raw??meta.text;if(meta.set){if(meta.set.table==='param'){const {key,axis,value}=meta.set;if(axis){const cur=params.get(key);const arr=Array.isArray(cur)?cur.slice():[cur,cur,cur];arr[axis-1]=value;params.set(key,arr);}else params.set(key,value);pv=snap();}continue;}if(meta.call!==undefined)continue;if(meta.stop){add(p,p,{rapid:true,kind:'stop',stop:meta.stop},{line:meta.line,raw:raw||''});continue;}
   const virtual=meta.virtual?raw.match(/^\s*\(SIM:([^()]*)\)\s*$/i):null;
   let str=((virtual?virtual[1]:meta.text)||'').replace(/\([^()]*\)/g,'').split(';')[0].toUpperCase().replace(/\s/g,'');
@@ -33,10 +33,10 @@ function parse(src,opt={}){
   const w={},lit={},gs=[],ms=[];for(const [,k,v] of matches){const x=Number(v);if(k==='G')gs.push(x);else if(k==='M')ms.push(x);else{w[k]=x;lit[k]=v;}}
   const bad=Object.keys(w).find(k=>!['N','O','X','Y','Z','I','J','K','R','T','F','S','P','Q','L','D','H'].includes(k));if(bad){warn(meta.line,'Unsupported word '+bad+'; stopped.');break}
   if(!dpi)for(const k of 'XYZIJKRQ')if(k in w&&!String(lit[k]).includes('.'))w[k]*=0.001;
-  let nextMotion=motion;
+  let nextMotion=motion,skipG=false;
   for(const g of gs){if([0,1,2,3].includes(g)){nextMotion=g;cycle=null;}else if(g===90)absolute=true;else if(g===91)absolute=false;else if(g===20)scale=25.4;else if(g===21)scale=1;
    else if(g===80){nextMotion=null;cycle=null;}else if(g===17||g===49||g===61||g===64||g===4||g===28||g===53||g===10||g===11)0;else if(g===94||g===95)feedMode=g;else if(g===98||g===99)ret=g;
-   else if(g===40||g===41||g===42)comp=g;else if(g===43||g===44)0;else if(g>=54&&g<=59)wcs=g;
+   else if(g===31)skipG=true;else if(g===40||g===41||g===42)comp=g;else if(g===43||g===44)0;else if(g>=54&&g<=59)wcs=g;
    else if([73,76,81,82,83,84,85,86,89].includes(g)){cycle=g;cyc={init:p.z};}
    else{warn(meta.line,'Unsupported G'+g+(g===18||g===19?' (only the G17 XY plane is simulated)':'')+'; stopped.');stop=true;break}}
   if(stop)break;motion=nextMotion;
@@ -50,6 +50,10 @@ function parse(src,opt={}){
   if(gs.includes(28)){const q=cp(p);for(const k of ['X','Y','Z'])if(k in w)q[k.toLowerCase()]=(absolute?0:p[k.toLowerCase()])+w[k]*scale;add(p,q,{rapid:true,cycle:'G28'},meta);const wo=work[wcs]||{},ref=params.get(1240)||[0,0,0],h=cp(q);['x','y','z'].forEach((k,i)=>{if(k.toUpperCase() in w)h[k]=ref[i]-(wo[k]||0);});add(q,h,{rapid:true,cycle:'G28'},meta);p=h;continue;}
   if(gs.includes(53)){const wo=work[wcs]||{},q=cp(p);for(const k of ['X','Y','Z'])if(k in w)q[k.toLowerCase()]=w[k]*scale-(wo[k.toLowerCase()]||0);add(p,q,{rapid:true,cycle:'G53'},meta);p=q;continue;}
   if(gs.includes(10))continue;
+  // G31 skip (one-shot linear feed): ends at the contact point found by the macro host (meta.skip), else at the target.
+  if(skipG){if(!['X','Y','Z'].some(k=>k in w))continue;if(!(F>0)){warn(meta.line,'G31 without F (alarm 011); stopped.');break}if(comp!==40)warn(meta.line,'G31 with cutter compensation active (alarm 035 on the control)');
+   const q=cp(p);for(const k of ['X','Y','Z'])if(k in w)q[k.toLowerCase()]=(absolute?0:p[k.toLowerCase()])+w[k]*scale;const sk=meta.skip;const e=sk?{x:sk.x,y:sk.y,z:sk.z}:q;
+   add(p,e,{rapid:false,kind:'feed',cycle:'G31',skip:{contact:!!sk?.contact,target:cp(q)}},meta);warn(meta.line,sk?.contact?`G31 skip: contact at X${e.x.toFixed(3)} Y${e.y.toFixed(3)} Z${e.z.toFixed(3)}`:'G31 skip: no contact, moved the full distance');p=e;continue;}
   if(cycle){if(!['X','Y','Z','R'].some(k=>k in w))continue;// drilling cycle: position, R level, depth
    if('Z'in w)cyc.z=absolute?w.Z*scale:null;if('Z'in w&&!absolute)cyc.dz=w.Z*scale;if('R'in w)cyc.r=w.R*scale;if('Q'in w)cyc.q=Math.abs(w.Q)*scale;if('P'in w)cyc.p=w.P/1000;
    const q=cp(p);for(const k of ['X','Y'])if(k in w)q[k.toLowerCase()]=(absolute?0:p[k.toLowerCase()])+w[k]*scale;
