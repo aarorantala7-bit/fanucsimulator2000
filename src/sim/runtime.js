@@ -43,7 +43,7 @@ function polylines(segs,group,get){const out=new Map(),last=new Map();
 // Ignores rapids, G28/G53/home moves and feed moves entirely above Z0 (approach/retract); adds the tool radius.
 // pct: how much larger than the work area the blank is (each dimension). Returns null when nothing cuts.
 function millWorkArea(segs,radiusOf,pct=10){let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity,z0=Infinity,n=0;
- for(const s of segs){if(s.rapid||s.kind==='stop'||s.kind==='dwell'||(s.cycle&&/G28|G30|G53/.test(s.cycle)))continue;if(Math.min(s.a.z,s.b.z)>0)continue;const r=Math.max(0,radiusOf(s.tool)||0);
+ for(const s of segs){if(s.rapid||s.skip||s.kind==='stop'||s.kind==='dwell'||(s.cycle&&/G28|G30|G53/.test(s.cycle)))continue;if(Math.min(s.a.z,s.b.z)>0)continue;const r=Math.max(0,radiusOf(s.tool)||0);
   for(const p of [s.a,s.b]){x0=Math.min(x0,p.x-r);x1=Math.max(x1,p.x+r);y0=Math.min(y0,p.y-r);y1=Math.max(y1,p.y+r);}z0=Math.min(z0,s.a.z,s.b.z);n++;}
  if(!n)return null;const k=pct/200,px=Math.max(1,(x1-x0)*k),py=Math.max(1,(y1-y0)*k),depth=Math.max(1,-z0)*(1+pct/100);
  return {x0:x0-px,x1:x1+px,y0:y0-py,y1:y1+py,depth,work:{x:x1-x0,y:y1-y0,z:Math.max(0,-z0)}};}
@@ -51,7 +51,7 @@ function millWorkArea(segs,radiusOf,pct=10){let x0=Infinity,x1=-Infinity,y0=Infi
 // Program number (first O-line) so demo stock can follow its own demo only.
 function programNumber(text){const m=/^\s*[O:](\d+)/mi.exec(String(text||''));return m?'O'+Number(m[1]):null;}
 function latheWorkArea(segs,pct=10){let xmax=0,zmin=Infinity,n=0;
- for(const s of segs){if(s.rapid||(s.kind!=='feed'&&s.kind!=='thread')||(s.cycle&&/G28|G30|G53/.test(s.cycle)))continue;xmax=Math.max(xmax,s.a.x,s.b.x);zmin=Math.min(zmin,s.a.z,s.b.z);n++;}
+ for(const s of segs){if(s.rapid||s.skip||(s.kind!=='feed'&&s.kind!=='thread')||(s.cycle&&/G28|G30|G53/.test(s.cycle)))continue;xmax=Math.max(xmax,s.a.x,s.b.x);zmin=Math.min(zmin,s.a.z,s.b.z);n++;}
  if(!n||!(xmax>0))return null;const work=Math.max(1,-Math.min(0,zmin)),round=v=>Math.ceil(v*2)/2;
  return {od:round(xmax*(1+pct/100)),length:round(work*(1+pct/100)),face:round(Math.max(0.5,work*pct/200)),work:{od:xmax,length:work}};}
 // Work zero on the stock (program X0 Y0 Z0). Mill zero {mode,x,y,z}: 'center' = X0 Y0 at the stock centre (default),
