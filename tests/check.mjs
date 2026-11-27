@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 const html=readFileSync('index.html','utf8');
 const scripts=[...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1]);
-assert.equal(scripts.length,27);
+assert.equal(scripts.length,30);
 for(const p of scripts) execFileSync(process.execPath,['--check',p],{stdio:'inherit'});
 for(const p of [...html.matchAll(/(?:src|href)="((?:assets|src)\/[^"]+)"/g)].map(m=>m[1])) assert.ok(existsSync(p),p);
 assert.ok(scripts.indexOf('src/state.js')===0);
