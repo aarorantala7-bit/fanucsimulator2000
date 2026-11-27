@@ -28,3 +28,37 @@
 #codedialog .ref-word-table th:first-child,#codedialog .ref-word-table td:first-child{width:38px;white-space:nowrap}
 #codedialog .ref-code-card{white-space:pre;overflow-wrap:normal;word-break:normal;overflow-x:auto;max-width:100%;box-sizing:border-box;font-size:12px}
 @media(max-width:480px){#codedialog{padding:10px}#codedialog section{padding:9px}#codedialog .ref-word-table td,#codedialog .ref-word-table th{padding:6px}#ref-graphic{max-height:210px}}
+/* Layout stability: text that changes every frame sits in fixed-size boxes and uses tabular digits,
+   so playback never reflows the page (panel headers, canvas, transport and readouts keep their boxes). */
+.panelhead{flex-wrap:nowrap;height:47px;min-height:47px;overflow:hidden}
+.panelhead>*{flex:none;white-space:nowrap}
+#renderinfo{flex:0 1 auto;width:36ch;max-width:62%;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:right;font-variant-numeric:tabular-nums}
+.transport .buttons{flex-wrap:nowrap;min-width:0}
+#play{width:7.2em;flex:none;text-align:center;white-space:nowrap}
+#counter{flex:none;width:13ch;text-align:right;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+#active{display:block;height:1.6em;line-height:1.6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.hud{width:24ch;height:calc(6 * 1.6em);overflow:hidden;font-variant-numeric:tabular-nums;box-sizing:content-box}
+.currenttool{width:min(250px,62%);max-width:none;box-sizing:border-box;height:28px}
+.toollegend{box-sizing:border-box}
+.cnc-screen,.posblk .big,.op-ind .lamp,.op-row select{font-variant-numeric:tabular-nums}
+.op-ind .lamp{display:inline-block;min-width:4.5ch;text-align:center}
+.op-ind .lamp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.op-ind .lamp-sp{width:calc(25ch + 12px)}.op-ind .lamp-tool{width:calc(17ch + 12px)}.op-ind .lamp-ov{width:calc(26ch + 12px)}
+.cnc-fkeys,.cnc-softkeys,.op-row{flex-wrap:wrap}
+/* Lathe readout: docked in its own reserved strip so it never covers the part (right column on desktop, bottom strip on phones). */
+body[data-machine=lathe] .viewport #lathecanvas{inset:0 auto auto 0;width:calc(100% - 196px);height:100%}
+body[data-machine=lathe] .viewport .currenttool{right:210px}
+body[data-machine=lathe] .viewport #hud{top:0;bottom:0;right:0;left:auto;width:196px;height:auto;padding:12px 10px;box-sizing:border-box;background:#f7f9fb;border-left:1px solid var(--edge);border-radius:0;white-space:pre;line-height:1.6}
+@media(max-width:760px){
+ body[data-machine=lathe] .viewport #lathecanvas{width:100%;height:calc(100% - 96px)}
+ body[data-machine=lathe] .viewport #hud{top:auto;left:0;right:0;bottom:0;width:auto;height:96px;padding:6px 10px;border-left:0;border-top:1px solid var(--edge);column-count:2;column-gap:14px;column-fill:auto;line-height:1.75}
+ #renderinfo{width:24ch}
+ .transport .buttons{flex-wrap:wrap}#counter{width:100%;flex:0 0 100%}
+ body[data-machine=lathe] .viewport .currenttool{right:14px}
+}
+.stockauto{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:8px 0;font-size:12px;color:var(--muted)}.stockauto label{display:flex;align-items:center;gap:6px}.stockauto input[type=number]{width:72px}
+
+/* Work zero + G54 in the stock dialogs (fixed grid, no reflow when modes change). */
+.stockzero,.stockg54{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px;margin:10px 0}.stockg54{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stockzero label,.stockg54 label{display:grid;gap:4px;color:var(--muted);font-size:12px}.stockzero input,.stockzero select,.stockg54 input{width:100%;min-width:0}
+.stockg54>span{grid-column:1/-1;color:var(--muted);font-size:11px}
+@media(max-width:520px){.stockzero{grid-template-columns:repeat(2,minmax(0,1fr))}}

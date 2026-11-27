@@ -37,7 +37,7 @@ function buildUi(){
 }
 async function openWincam(f,generic){if(f.size>2e6){$('diagnostics').textContent='File exceeds the 2 MB viewer limit.';return;}
  const dec=WinCam.decode(await f.arrayBuffer());const im=WinCam.importText(dec.text);wincamMeta={...im.meta,encoding:dec.encoding,name:f.name};
- const note=applyTools(im.text);setSource(im.text);lastImport=null;
+ const note=applyTools(im.text);globalThis.onProgramOpened?.();setSource(im.text);lastImport=null;
  const head=`Imported ${f.name} (${dec.encoding}, ${im.meta.eol==='\r\n'?'CRLF':'LF'}${im.meta.oNumber?`, O${im.meta.oNumber}`:''}).`;
  if(!generic)$('diagnostics').textContent=head+(note?'\n'+note:'');else if(note)$('diagnostics').textContent+=(($('diagnostics').textContent?'\n':'')+note);showNote(note);}
 // List the program's tools in the current machine's tool table (T number, H/D or offset numbers, first call, name
@@ -90,3 +90,5 @@ function appendPreview(){const text=$('photopreview').value.replace(/\r\n?/g,'\n
 if(typeof document!=='undefined'&&document.getElementById('open')){buildUi();hookToolTables();}
 return {get pages(){return pages;},get meta(){return wincamMeta;},get programTools(){return programTools;},applyTools,getWorker,preprocess,exportWincam,lastExport:null};
 })();
+// Last script: tells the inline load check in index.html that the app started.
+globalThis.__fanucReady=true;

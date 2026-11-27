@@ -25,7 +25,7 @@
  <div class="op-row op-ind" id="cnc-ind"></div>`;
  // ---------- position / state sources ----------
  function homeWork(m=P.machine){const w=MS[m].work,ref=MS[m].params.get(1240)||[0,0,0],sh=w.shift||{x:0,z:0};return m==='lathe'?{x:ref[0]-w[54].x-sh.x,z:ref[1]-w[54].z-sh.z}:{x:ref[0]-w[54].x,y:ref[1]-w[54].y,z:ref[2]-w[54].z};}
- function program(){if(P.machine==='lathe'){const c=LatheView.current();return c?{seg:c.s,pos:{x:c.tip.x,z:c.tip.z}}:null;}const smp=position?samples[position-1]:null,s=smp?segs[smp.i]:segs[0];return s?{seg:s,pos:smp?{...smp.p}:{...s.a}}:null;}
+ function program(){if(P.machine==='lathe'){const c=LatheView.current();return c?{seg:c.s,pos:{x:c.tip.x,z:c.tip.z}}:null;}const ph=playhead(),s=ph.s;return s?{seg:s,pos:{...(ph.p||s.a)}}:null;}
  function cur(){const pr=program();const pos=globalThis.manualPos?{...globalThis.manualPos}:pr?pr.pos:homeWork();return {pos,seg:P.mdiRun?.seg||pr?.seg||null};}
  function machinePos(p){const w=st().work,g=w[54]||{},e=w.ext||{},sh=w.shift||{};const o={};for(const a of CFG[P.machine].axes){const k=a.toLowerCase();o[k]=(p[k]||0)+(g[k]||0)+(e[k]||0)+(sh[k]||0);}return o;}
  function running(){return P.machine==='lathe'?LatheView.playing:playing;}
@@ -152,7 +152,7 @@
   $('cnc-start').classList.toggle('on',running()||!!P.mdiRun);$('cnc-hold').classList.toggle('on',!running()&&!P.mdiRun&&(P.machine==='lathe'?LatheView.position>0&&LatheView.position<LatheView.samples.length:position>0&&position<samples.length));$('cnc-jograpid').classList.toggle('on',P.jogRapid);
   const c=cur(),g=c.seg||{};const sp=g.spindle===3?'CW M03':g.spindle===4?'CCW M04':'STOP M05';const rpm=g.spindle===3||g.spindle===4?(g.rpm||g.S||0)*RT.state.spindleOv/100:0;
   const tool=P.machine==='lathe'?`TURRET T${String(g.tool||0).padStart(2,'0')}${String(g.off||0).padStart(2,'0')}`:`TOOL T${g.tool||0} H${g.H||0} D${g.D||0}`;
-  const html=`<span class="lamp ${rpm?'on':''}">SPINDLE ${sp} ${rpm.toFixed(0)} rpm</span><span class="lamp ${g.coolant?'on':''}">COOLANT ${g.coolant?'M08':'M09'}</span><span class="lamp">${tool}</span>${CFG[P.machine].axes.map(a=>`<span class="lamp ${P.ref[a.toLowerCase()]?'on':''}">ZRN ${a}</span>`).join('')}<span class="lamp ${P.pwe?'alarm':''}">${P.pwe?'SW0100':'NO ALARM'}</span><span class="lamp">F ${RT.state.feedOv}% · R ${RT.state.rapidOv==='F0'?'F0':RT.state.rapidOv+'%'} · S ${RT.state.spindleOv}%</span>`;
+  const html=`<span class="lamp lamp-sp ${rpm?'on':''}">SPINDLE ${sp} ${rpm.toFixed(0)} rpm</span><span class="lamp ${g.coolant?'on':''}">COOLANT ${g.coolant?'M08':'M09'}</span><span class="lamp lamp-tool">${tool}</span>${CFG[P.machine].axes.map(a=>`<span class="lamp ${P.ref[a.toLowerCase()]?'on':''}">ZRN ${a}</span>`).join('')}<span class="lamp ${P.pwe?'alarm':''}">${P.pwe?'SW0100':'NO ALARM'}</span><span class="lamp lamp-ov">F ${RT.state.feedOv}% · R ${RT.state.rapidOv==='F0'?'F0':RT.state.rapidOv+'%'} · S ${RT.state.spindleOv}%</span>`;
   if(html!==lastInd){ind.innerHTML=html;lastInd=html;}
   if(P.screen==='POS'&&!screen.hidden)screen.innerHTML=screenHTML();}
  setInterval(()=>{if(panel.classList.contains('cnc-editor-mode'))refresh(false);},250);
