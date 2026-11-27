@@ -17,27 +17,11 @@ function playhead(){if(live)return {s:segs[live.i],p:live.p,i:live.i};const b=po
 // Material removal for a piece of one segment (fractions f0..f1); a whole block is a few calls, not one per sample.
 function cutSeg(k,f0,f1){const s=segs[k];if(!s||f1<=f0)return;cutPiece(s,f0<=0?s.a:lerp(s.a,s.b,f0),f1>=1?s.b:lerp(s.a,s.b,f1));}
 function cutTo(i,f){let k=cutAt.i,f0=cutAt.f;if(i<k||(i===k&&f<=f0))return;while(k<i){cutSeg(k,f0,1);k++;f0=0;}cutSeg(i,f0,f);cutAt={i,f};}
+// Probes (kind 'probe') and preview-only shapes do not remove material; the cut itself is SkipSim.cutHeight (shared with G31).
 function cutPiece(s,a,b){
   const t=tools.get(s.tool);
-  if(s.rapid||s.len===0||!t||isVisualOnlyTool(t)||Math.min(a.z,b.z)>=(stock.top||0))return;
-  const r=t.width/2,rr=r*r,st=stock,vx=b.x-a.x,vy=b.y-a.y,vz=b.z-a.z,ll=vx*vx+vy*vy;
-  const loX=clamp(Math.floor((Math.min(a.x,b.x)-r-st.x0)/st.dx),0,st.nx-1),hiX=clamp(Math.floor((Math.max(a.x,b.x)+r-st.x0)/st.dx),0,st.nx-1),loY=clamp(Math.floor((Math.min(a.y,b.y)-r-st.y0)/st.dy),0,st.ny-1),hiY=clamp(Math.floor((Math.max(a.y,b.y)+r-st.y0)/st.dy),0,st.ny-1);
-  const cr=clamp(t.corner||1,.0001,r), profile=d2=>t.shape==='ball'?r-Math.sqrt(Math.max(0,rr-d2)):t.shape==='point'?Math.sqrt(d2)/r*t.tip:t.shape==='round'?cr-Math.sqrt(Math.max(0,cr*cr-Math.max(0,Math.sqrt(d2)-(r-cr))**2)):0;
-  for(let y=loY;y<=hiY;y++)for(let x=loX;x<=hiX;x++){
-    const px=st.x0+(x+.5)*st.dx-a.x,py=st.y0+(y+.5)*st.dy-a.y;
-    let z;
-    if(ll<1e-12){const d2=px*px+py*py;if(d2>rr)continue;z=Math.min(a.z,b.z)+profile(d2);}
-    else{
-      const center=(px*vx+py*vy)/ll,perp=(px-center*vx)**2+(py-center*vy)**2;
-      if(perp>rr)continue;
-      const half=Math.sqrt(Math.max(0,(rr-perp)/ll)),lo=Math.max(0,center-half),hi=Math.min(1,center+half);
-      if(lo>hi)continue;
-      if(Math.abs(vz)<1e-10){const u=clamp(center,lo,hi);z=a.z+profile(perp+ll*(u-center)**2);}
-      else if(t.shape==='flat'){z=a.z+vz*(vz>0?lo:hi);}
-      else {const f=u=>a.z+vz*u+profile(perp+ll*(u-center)**2);let l=lo,h=hi;for(let j=0;j<12;j++){const u=(2*l+h)/3,v=(l+2*h)/3;if(f(u)<f(v))h=v;else l=u;}z=Math.min(f(lo),f(hi),f((l+h)/2));}
-    }
-    const k=y*st.nx+x;const next=Math.fround(Math.max(st.bottom,Math.min(st.h[k],z)));if(next!==st.h[k]){st.h[k]=next;surfaceRevision++;}
-  }
+  if(s.rapid||s.len===0||!t||isVisualOnlyTool(t)||t.kind==='probe')return;
+  if(SkipSim.cutHeight(stock,t,a,b))surfaceRevision++;
 }
 function rebuildStock(target){stock.h.fill(stock.top||0);surfaceRevision++;position=0;cutAt={i:0,f:0};live=null;advance(target);dirty=true;}
 // Jump to the end of block `target` (step, seek, reset); playback passes keepLive so the in-block position stays.
