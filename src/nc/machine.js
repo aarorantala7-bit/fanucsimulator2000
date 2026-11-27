@@ -72,7 +72,9 @@ const MILL_TOOLS=[
  {id:8,name:'Tap M10x1.5',type:'tap',shape:'flat',width:10,corner:0,body:24,shank:8,shankLength:50,holder:36,holderLength:55,tip:0,pointAngle:0,length:129,pitch:1.5},
  {id:9,name:'Reamer Ø10 H7',type:'reamer',shape:'flat',width:10,corner:0,body:38,shank:10,shankLength:40,holder:32,holderLength:45,tip:0,pointAngle:0,length:123},
  {id:10,name:'Fine boring bar Ø20-26',type:'boring',shape:'flat',width:20,corner:0.4,body:30,shank:16,shankLength:40,holder:50,holderLength:60,tip:0,pointAngle:0,length:130},
- {id:11,name:'Chamfer mill Ø12 90°',type:'chamfer',shape:'point',width:12,corner:0,body:10,shank:12,shankLength:40,holder:32,holderLength:45,tip:6,pointAngle:90,length:95}
+ {id:11,name:'Chamfer mill Ø12 90°',type:'chamfer',shape:'point',width:12,corner:0,body:10,shank:12,shankLength:40,holder:32,holderLength:45,tip:6,pointAngle:90,length:95},
+ // Touch probe for G31: a ball stylus that never removes material (stock.js skips kind 'probe').
+ {id:12,name:'Touch probe Ø6 ruby ball',type:'probe',shape:'ball',width:6,corner:3,body:50,shank:6,shankLength:20,holder:40,holderLength:60,tip:0,pointAngle:0,length:150}
 ];
 function defaultMillOffsets(){const h={},d={};for(const t of MILL_TOOLS){h[t.id]={geom:t.length,wear:0};d[t.id]={geom:t.width/2,wear:0};}return {h,d};}
 function pointHeight(diameter,angle){return angle>0&&angle<180?(diameter/2)/Math.tan(angle*Math.PI/360):0;}
