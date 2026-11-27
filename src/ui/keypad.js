@@ -18,7 +18,7 @@
  function pending(value){if(pendingEob){status.textContent='EOB pending. Press INSERT or INPUT, or CAN to cancel.';return;}const a=buffer.selectionStart,b=buffer.selectionEnd;buffer.setRangeText(formatTextInsert(buffer.value,value,a,b),a,b,'end');status.textContent='Pending text updated.';}
  function eobKey(){markEob(true);status.textContent='EOB (;) pending. Press INSERT or INPUT to commit and move to the next row.';}
  function cancelKey(){if(pendingEob){markEob(false);status.textContent='EOB cancelled.';return;}const a=buffer.selectionStart,b=buffer.selectionEnd;buffer.setRangeText('',a===b?Math.max(0,a-1):a,b,'end');status.textContent='Pending text updated.';}
- function textAction(key){let a=editor.selectionStart,b=editor.selectionEnd;const v=buffer.value;if((key==='ALTER'||key==='DELETE')&&a===b&&panel.classList.contains('cnc-editor-mode')){const text=editor.value,start=a-text.slice(0,a).split('\n').at(-1).length;let end=text.indexOf('\n',a);if(end<0)end=text.length;const word=[...text.slice(start,end).matchAll(/\S+/g)].find(m=>a-start>=m.index&&a-start<m.index+m[0].length);if(word){a=start+word.index;b=a+word[0].length;}}if(key==='DELETE'){if(a!==b){change('',a,b);status.textContent='Highlighted text deleted.';}else{status.textContent='No highlighted word to delete.';}return;}if(pendingEob&&key==='ALTER'){status.textContent='Press INSERT or INPUT to commit the pending EOB.';return;}if(!v&&!pendingEob){status.textContent='Enter pending text first.';return;}if(key==='ALTER'&&a===b){status.textContent='Highlight a word to replace; use INSERT at an empty cursor.';return;}const ending=pendingEob,stop=key==='INSERT'?a:b;change(formatBufferedCommit(v,a,stop,ending),a,stop);buffer.value='';buffer.setSelectionRange(0,0);markEob(false);status.textContent=ending?'Line committed. Ready for the next row.':key==='ALTER'?'Selected text replaced.':'Pending text inserted.';}
+ function textAction(key){let a=editor.selectionStart,b=editor.selectionEnd;const v=buffer.value;const cnc=panel.classList.contains('cnc-editor-mode');if(cnc&&globalThis.CncPanel){const r=CncPanel.intercept(key,v,pendingEob,status);if(r==='consumed'){buffer.value='';markEob(false);return;}if(r==='blocked')return;}if(key==='INSERT'&&cnc&&a===b){const text=editor.value,start=a-text.slice(0,a).split('\n').at(-1).length;let end=text.indexOf('\n',a);if(end<0)end=text.length;const word=[...text.slice(start,end).matchAll(/\S+/g)].find(m=>a-start>=m.index&&a-start<m.index+m[0].length);if(word){a=b=start+word.index+word[0].length;}}if((key==='ALTER'||key==='DELETE')&&a===b&&panel.classList.contains('cnc-editor-mode')){const text=editor.value,start=a-text.slice(0,a).split('\n').at(-1).length;let end=text.indexOf('\n',a);if(end<0)end=text.length;const word=[...text.slice(start,end).matchAll(/\S+/g)].find(m=>a-start>=m.index&&a-start<m.index+m[0].length);if(word){a=start+word.index;b=a+word[0].length;}}if(key==='DELETE'){if(a!==b){if(cnc){if(editor.value[b]===' ')b++;else if(editor.value[a-1]===' ')a--;}change('',a,b);status.textContent='Highlighted text deleted.';}else{status.textContent='No highlighted word to delete.';}return;}if(pendingEob&&key==='ALTER'){status.textContent='Press INSERT or INPUT to commit the pending EOB.';return;}if(!v&&!pendingEob){status.textContent='Enter pending text first.';return;}if(key==='ALTER'&&a===b){status.textContent='Highlight a word to replace; use INSERT at an empty cursor.';return;}const ending=pendingEob,stop=key==='INSERT'?a:b;const ins=formatBufferedCommit(v,a,stop,ending);change(ins,a,stop);if(cnc){const lead=ins.length-ins.trimStart().length;const at=a+lead;editor.setSelectionRange(at,at);editor.dispatchEvent(new Event('select'));}buffer.value='';buffer.setSelectionRange(0,0);markEob(false);status.textContent=ending?'Line committed. Ready for the next row.':key==='ALTER'?'Selected text replaced.':'Pending text inserted.';}
 
 
  function show(active){pad.hidden=!active;entry.hidden=!active;toggle.setAttribute('aria-expanded',String(active));toggle.classList.toggle('primary',active);editor.inputMode=active?'none':'text';}
@@ -35,7 +35,7 @@
  }
  // Separate complete plain text words across buffer commits; leave expressions and comments alone.
  function formatBufferedCommit(value,a,b,ending){
-   if(!value)return ending?'\n':'';
+   if(!value)return ending?';\n':'';
    const word=/^[A-Z][+-]?(?:\d+(?:\.\d*)?|\.\d+)$/i;
    const simple=line=>line.trim()!==''&&line.trim().split(/[ \t]+/).every(x=>word.test(x));
    const left=editor.value.slice(0,a).split('\n').at(-1),right=editor.value.slice(b).split('\n')[0];
@@ -43,7 +43,7 @@
      if(simple(left)&&!/[ \t]$/.test(left)&&!/^\s/.test(value))value=' '+value;
      if(!ending&&simple(right)&&!/^\s/.test(right)&&!/[ \t]$/.test(value))value+=' ';
    }
-   return value+(ending?'\n':'');
+   return value+(ending?';\n':'');
  }
  function formatInsert(value,a,b){return formatTextInsert(editor.value,value,a,b);}
  function change(value,a=editor.selectionStart,b=editor.selectionEnd){editor.setRangeText(formatInsert(value,a,b),a,b,'end');editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus({preventScroll:true});}
@@ -85,23 +85,3 @@
  .keypad-entry[hidden]{display:none!important}.keypad-entry{flex:0 0 auto;margin:0;padding:7px 9px;background:#181e24;border-top:1px solid #49545d;gap:4px;color:#d6e4d9}.keypad-entry label{font:600 10px Segoe UI,sans-serif;color:#a7b6bd;letter-spacing:.7px}.keypad-input-line{display:flex;align-items:center;gap:6px;background:#10161a;border:1px solid #778881;padding:3px 7px;min-width:0}.keypad-input-line .buffer-prompt{color:#a1c9a4;font:14px monospace}.keypad-entry textarea{flex:1;min-width:0;width:auto;min-height:23px;height:23px;max-height:23px;resize:none;padding:2px 0;background:transparent;color:#d8f0dd;border:none;outline:none;white-space:pre;overflow-x:auto;font:13px/19px Consolas,monospace}.keypad-entry small{color:#b2c1b7;font-size:10px}.keypad-input-line #keypad-eob-mark{color:#f5d98a;font:600 15px monospace}.keypad-input-line #keypad-eob-mark[hidden]{display:none}
  `;document.head.append(style);syncMarkers();
 })();
-// Isolated visual notation, not a controller syntax template.
-const renderRefWordsBefore029=renderRefWords;
-renderRefWords=function(row,el){
- renderRefWordsBefore029(row,el);
- const box=el('example'),pre=box.querySelector('.ref-code-card'),labels=box.querySelectorAll('.ref-example-label');
- if(labels[0])labels[0].textContent='Notation illustration';
- if(pre){
-  const terms=[...el('words').querySelectorAll('.ref-word-table tbody tr')];
-  const letters=[...new Set(terms.map(tr=>tr.cells[0].textContent.trim()).filter(k=>/^[A-Z]$/.test(k)&&k!==row[0][0]))];
-  pre.textContent=row[0]+(letters.length?' '+letters.map(k=>k+'<value>').join(' '):'');
-  pre.style.cssText='white-space:pre;overflow-x:auto;overflow-wrap:normal;word-break:normal;max-width:100%;box-sizing:border-box';
-  if(row[0]==='G76'){
-   const context=document.createElement('p');context.className='ref-context';context.textContent='Turning reference only (supplied screenshot). Milling G76 has a different meaning; milling addresses are not documented here.';pre.before(context);
-  }
-  if(!letters.length){const p=document.createElement('p');p.className='ref-context';p.textContent='No extra letters documented in this entry.';pre.after(p);}
- }
- if(labels[1])labels[1].textContent='Visual notation only: <value> represents a fictional placeholder, not a numeric machine setting. Letter order, combinations and required/optional status are not validated.';
-};
-document.querySelector('#ref-example').previousElementSibling.textContent='Example and explanation';
-document.getElementById('ref-query').dispatchEvent(new Event('input'));
