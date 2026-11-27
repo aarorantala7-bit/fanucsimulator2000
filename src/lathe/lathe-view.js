@@ -9,9 +9,14 @@
  globalThis.LatheView=V;
  const tools=()=>new Map(MS.lathe.tools.map(t=>[t.id,t]));
  function stockCfg(){return MS.lathe.stock;}
+ // Auto stock for these segments (or the current stock when manual / nothing is cut).
+ function stockFor(segs){const c=MS.lathe.stock;if(!V.autoStock)return c;const wa=RT.latheWorkArea(segs,RT.state.stockMargin);if(!wa)return c;const tube=c.type==='tube'&&c.bore>0&&c.bore<wa.od-0.5;const pl=RT.placeLatheStock(wa,c.zero,RT.state.stockMargin);return {...c,type:tube?'tube':'bar',bore:tube?c.bore:0,od:pl.od,length:pl.length,face:pl.face};}
  function newStock(){const c=stockCfg();return L.makeStock({od:c.od,bore:c.type==='tube'?c.bore:0,length:c.length,face:c.face});}
- V.load=function(text){RT.reset();if(V.demoO&&!RT.state.keepManualStock&&RT.programNumber(text)!==V.demoO){V.autoStock=true;V.demoO=null;}V.playing=false;const r=L.simulate(text,{params:MS.lathe.params,offsets:MS.lathe.offsets,work:MS.lathe.work,tools:MS.lathe.tools,common:MS.common,blockSkip:RT.state.blockSkip,library:MS.library('lathe')});MS.persist();
-  V.res=r;if(V.autoStock){const wa=RT.latheWorkArea(r.segs,RT.state.stockMargin);if(wa){const c=MS.lathe.stock,tube=c.type==='tube'&&c.bore>0&&c.bore<wa.od-0.5;const pl=RT.placeLatheStock(wa,c.zero,RT.state.stockMargin);MS.lathe.stock={...c,type:tube?'tube':'bar',bore:tube?c.bore:0,od:pl.od,length:pl.length,face:pl.face};MS.persist();}}V.stock=newStock();V.position=0;V.threads=L.threads(r,MS.lathe.tools);threadCache.clear();
+ V.load=function(text){RT.reset();if(V.demoO&&!RT.state.keepManualStock&&RT.programNumber(text)!==V.demoO){V.autoStock=true;V.demoO=null;}V.playing=false;const so={params:MS.lathe.params,offsets:MS.lathe.offsets,work:MS.lathe.work,tools:MS.lathe.tools,common:MS.common,blockSkip:RT.state.blockSkip,library:MS.library('lathe')};
+  // G31: a first run on copies (skips at full distance) gives the stock the real run searches for contact.
+  let skipStock=null;if(/\bG\s*0*31(?!\d)/i.test(text.replace(/\([^()]*\)/g,''))){const cl=o=>JSON.parse(JSON.stringify(o));const r1=L.simulate(text,{...so,params:new Map([...so.params].map(([k,v])=>[k,Array.isArray(v)?v.slice():v])),offsets:cl(so.offsets),work:cl(so.work),common:new Map(so.common)});const c=stockFor(r1.segs);skipStock={od:c.od,bore:c.type==='tube'?c.bore:0,length:c.length,face:c.face};}
+  const r=L.simulate(text,{...so,skipStock});MS.persist();
+  V.res=r;if(V.autoStock){const c=stockFor(r.segs);if(c!==MS.lathe.stock){MS.lathe.stock=c;MS.persist();}}V.stock=newStock();V.position=0;V.threads=L.threads(r,MS.lathe.tools);threadCache.clear();
   // Playback steps are NC blocks (one Step = one block); the tool position inside a block is time-based per frame.
   const S=RT.makeBlocks(r.segs);V.samples=S;V.live=null;V.cutAt={i:0,f:0};
   buildPaths();V.fit();
@@ -37,7 +42,7 @@
  let hudT=0;
  V.hud=function(force){const now=performance.now();if(!force&&now-hudT<100){V.hudDue=true;return;}hudT=now;V.hudDue=false;const c=V.current();if(!c){$('hud').textContent='TURNING\nNo program';return;}const s=c.s,t=tools().get(s.tool);
   const sp=s.spindle===3?'CW (M03)':s.spindle===4?'CCW (M04)':'STOP (M05)';const rpm=s.spindle===5?0:s.rpm*RT.state.spindleOv/100;
-  $('hud').textContent=`ABSOLUTE (WORK)\nX ${c.tip.x.toFixed(3)} (Ø)\nZ ${c.tip.z.toFixed(3)}\nT${String(s.tool).padStart(2,'0')}${String(s.off).padStart(2,'0')}  R${(s.noseR||0).toFixed(1)} T${s.tipDir??''}\nS ${rpm.toFixed(0)} rpm  ${sp}\n${s.rapid?'RAPID '+(RT.state.rapidOv==='F0'?'F0':RT.state.rapidOv+'%'):s.kind==='dwell'?'DWELL '+s.dwell.toFixed(2)+'s':'F '+(s.F||0)+(s.feedMode===99||s.kind==='thread'?' mm/rev':' mm/min')}\nTIME ${RT.fmtTime(V.elapsed())} / ${RT.fmtTime(V.res.cycleTime)}\n${V.playing?'CYCLE START':'STOP'}`;
+  $('hud').textContent=`ABSOLUTE (WORK)\nX ${c.tip.x.toFixed(3)} (Ø)\nZ ${c.tip.z.toFixed(3)}\nT${String(s.tool).padStart(2,'0')}${String(s.off).padStart(2,'0')}  R${(s.noseR||0).toFixed(1)} T${s.tipDir??''}\nS ${rpm.toFixed(0)} rpm  ${sp}\n${s.rapid?'RAPID '+(RT.state.rapidOv==='F0'?'F0':RT.state.rapidOv+'%'):s.kind==='dwell'?'DWELL '+s.dwell.toFixed(2)+'s':'F '+(s.F||0)+(s.feedMode===99||s.kind==='thread'?' mm/rev':' mm/min')}\nTIME ${RT.fmtTime(V.elapsed())} / ${RT.fmtTime(V.res.cycleTime)}\n${s.skip?(s.skip.contact?'G31 SKIP · CONTACT':'G31 SKIP · NO CONTACT')+'\n':''}${V.playing?'CYCLE START':'STOP'}`;
   $('counter').textContent=`${V.position} / ${V.samples.length}`;$('seek').value=V.position;$('active').textContent=s.line?'LINE '+s.line+'  |  '+(s.raw||'')+(s.cycle?'  ['+s.cycle+']':''):'';$('play').textContent=V.playing?'Ⅱ Pause':'▶ Play';
   const ct=$('currenttool');ct.hidden=false;$('currenttoolname').textContent='T'+String(s.tool).padStart(2,'0')+' · '+(t?t.name:'not in tool table');$('currenttoolcolor').style.background=toolColor(s.tool);$('toollegend').hidden=true;globalThis.CncPanel?.refresh?.();};
  // ---------- drawing ----------
