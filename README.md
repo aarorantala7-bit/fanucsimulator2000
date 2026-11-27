@@ -1,10 +1,10 @@
 # FANUC Simulator 2000
 
-Independent, browser-based educational simulator for FANUC-style programs. Version **v0.60**. Not affiliated with FANUC.
+Independent, browser-based educational simulator for FANUC-style programs. Version **v0.61**. Not affiliated with FANUC.
 
 ## Run
 
-Open `index.html` in a modern browser (or serve the folder with any static web server). No dependencies or machine connection.
+Open `index.html` in a modern browser (or serve the folder with any static web server). No dependencies or machine connection. Photo import (OCR) needs the folder served over http(s), e.g. `python3 -m http.server`, because browsers block its web worker on `file://`.
 
 ## What it does
 
@@ -16,6 +16,8 @@ Open `index.html` in a modern browser (or serve the folder with any static web s
 - **Real-time playback** from programmed feeds and rapid rates with feed (0–150 %), rapid (F0/25/50/100 %) and spindle overrides, single block, optional stop (M01), block skip (/), dwell and cycle time estimate.
 - **Tools and stock**: editable mill tools (diameter, corner radius, flute and overall length, point angle; H/D offsets) and lathe inserts (ISO shape C/D/V/W/T/S/R, nose radius, tip T0–T9, holder angle, groove/thread width), saved in the browser with reset. Lathe stock is a solid bar or a tube (OD, bore, length, face). Material removal uses the actual tool outline.
 - **CNC panel** (Program › CNC Panel): POS / PROG / OFS/SET / SYSTEM / MESSAGE screens, EDIT / MEM / MDI / JOG / HANDLE / REF modes, CYCLE START / FEED HOLD / RESET, word-based INSERT / ALTER / DELETE, CAN, EOB, O-number and word search, program directory.
+- **Import from photo** (File): take photos of the control's program screen with the phone camera or pick images. Several pages are kept in order and can be reordered. OCR runs in the browser with the vendored Tesseract.js, which loads only when used; nothing is uploaded. NC-aware cleanup fixes O/0, I/1, S/5, B/8 and Z/2 using the word grammar, and strips screen line numbers, status rows, soft-key bars and cursor marks. Lines repeated across consecutive pages are dropped. You check and edit the text in a preview, then it is appended after the last imported block.
+- **WinCAM / NC files** (File): import Camtek WinCAM `.cnc` programs (also `.nc`, `.txt`, `.ncc`; windows-1252 or UTF-8). Export writes the program back as WinCAM text (CRLF, `%` lines, an O-number line with a comment). An imported file exports byte for byte. On import, the program's tools are listed in the tool table: the T number, the H/D numbers used (mill) or the Txxyy offset numbers (lathe), the first block that calls each tool, and a name from a comment right after the call. Tool geometry stays at the defaults for you to edit.
 - **G/M code library** (Help) with separate Milling and Turning entries, realistic examples and address tables.
 
 ## Project layout
@@ -24,8 +26,10 @@ Open `index.html` in a modern browser (or serve the folder with any static web s
 - `src/simulation/`: mill interpreter and stock. `src/lathe/`: lathe interpreter, removal model and view.
 - `src/sim/runtime.js`: shared real-time playback clock.
 - `src/renderer/`: CPU, GPU and viewport drawing. `src/tools/`: mill tool library.
+- `src/import/`: OCR text cleanup and page de-dupe (`nc-cleanup.js`), WinCAM import/export and tool list (`wincam.js`). `src/ui/import-dialog.js`: the import/export UI.
 - `src/ui/`: menus, CNC panel, machine selector, code library, demos, HUD.
-- `tests/`: `npm test` (source checks + node:test unit tests); `tests/headless_check.py` browser check (python playwright + Chrome).
+- `vendor/`: Tesseract.js, its WASM core and English model (Apache-2.0, see `vendor/README.md`).
+- `tests/`: `npm test` (source checks + node:test unit tests); `tests/headless_check.py` and `tests/headless_import.py` browser checks (python playwright + Chrome).
 
 Ordered classic scripts with shared state; the simulation modules are UMD so the tests run them in Node.
 

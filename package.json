@@ -1,10 +1,10 @@
 {
   "name": "fanucsimulator2000",
-  "version": "0.60.0",
+  "version": "0.61.0",
   "private": true,
   "scripts": {
     "test": "node tests/check.mjs && node --test \"tests/*.test.mjs\"",
     "build": "node scripts/build.mjs",
-    "check:browser": "python3 tests/headless_check.py"
+    "check:browser": "python3 tests/headless_check.py && python3 tests/headless_import.py"
   }
 }
