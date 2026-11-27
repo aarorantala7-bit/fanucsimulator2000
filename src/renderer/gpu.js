@@ -11,10 +11,10 @@ function createHybrid(){
  const meshProgram=program(`#version 300 es
  precision highp float;
  layout(location=0) in vec4 vertex;
- uniform vec2 center, ratio, angle, tilt;
+ uniform vec2 center, ratio, angle, tilt, shift;
  uniform float depthRange;
  out float tone;
- void main(){vec2 p=vertex.xy-center;float u=p.x*angle.x-p.y*angle.y;float v=p.x*angle.y+p.y*angle.x;gl_Position=vec4(u*ratio.x,-0.1+(v*tilt.x+vertex.z*tilt.y)*ratio.y,(v*tilt.y-vertex.z*tilt.x)/depthRange,1.0);tone=vertex.w;}
+ void main(){vec2 p=vertex.xy-center;float u=p.x*angle.x-p.y*angle.y;float v=p.x*angle.y+p.y*angle.x;gl_Position=vec4(shift.x+u*ratio.x,shift.y-0.1+(v*tilt.x+vertex.z*tilt.y)*ratio.y,(v*tilt.y-vertex.z*tilt.x)/depthRange,1.0);tone=vertex.w;}
  `,`#version 300 es
  precision highp float;in float tone;uniform vec3 material;out vec4 color;void main(){color=vec4(material*tone,1.);}`);
  const postProgram=program(`#version 300 es
@@ -27,7 +27,7 @@ function createHybrid(){
  void main(){ivec2 p=ivec2(gl_FragCoord.xy);color=texelFetch(colors,p,0);if(color.a<0.5||!outlines)return;float b=d(p);float a=0.;if(d(p+ivec2(1,0))>=1.||d(p-ivec2(1,0))>=1.||d(p+ivec2(0,1))>=1.||d(p-ivec2(0,1))>=1.)a=.18;
  float t=max(crease(d(p-ivec2(3,0)),b,d(p+ivec2(3,0))),crease(d(p-ivec2(0,3)),b,d(p+ivec2(0,3))));a=max(a,.14*clamp((t-.72)/.5,0.,1.));color.rgb*=1.-a;}`);
  const loc=(p,names)=>Object.fromEntries(names.map(n=>[n,gl.getUniformLocation(p,n)]));
- const mu=loc(meshProgram,['center','ratio','angle','tilt','depthRange','material']),pu=loc(postProgram,['colors','depths','size','depthRange','worldStep','outlines']);
+ const mu=loc(meshProgram,['center','ratio','angle','tilt','shift','depthRange','material']),pu=loc(postProgram,['colors','depths','size','depthRange','worldStep','outlines']);
  const vao=gl.createVertexArray(),buffer=gl.createBuffer(),postVao=gl.createVertexArray();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,4,gl.FLOAT,false,16,0);gl.bindVertexArray(null);
  const fbo=gl.createFramebuffer(),color=gl.createTexture(),depth=gl.createTexture();
  const maxSize=Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE),gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
@@ -68,11 +68,11 @@ function renderHybridStock(st,project,w,h){
   const moving=!!drag||playing;if(moving){clearTimeout(hqTimer);hqTimer=setTimeout(()=>{dirty=true;},180);}
   const supersample=moving?Math.min(1,g.maxSize/w,g.maxSize/h):Math.min(cadSampleScale(w,h),g.maxSize/w,g.maxSize/h);const W=Math.max(1,Math.round(w*supersample)),H=Math.max(1,Math.round(h*supersample));resizeHybrid(g,W,H);
   const m=surfaceGeometry(st);uploadHybrid(g,st,m);
-  const key=[w,h,W,H,yaw,pitch,zoom,$('sharpedges').checked].join('|');
+  const key=[w,h,W,H,yaw,pitch,zoom,panX,panY,$('sharpedges').checked].join('|');
   if(g.key!==key){
    const scale=Math.min(w,h)*.70/Math.max(st.extent,Math.abs(st.bottom)*1.5,st.maxZ*1.3)*zoom,range=Math.max(1,(st.extent+Math.abs(st.bottom)+Math.abs(st.maxZ)+1)*2);
    gl.viewport(0,0,W,H);gl.bindFramebuffer(gl.FRAMEBUFFER,g.fbo);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.depthMask(true);gl.disable(gl.BLEND);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-   gl.useProgram(g.meshProgram);gl.bindVertexArray(g.vao);gl.uniform2f(g.mu.center,st.cx,st.cy);gl.uniform2f(g.mu.ratio,2*scale/w,2*scale/h);gl.uniform2f(g.mu.angle,Math.cos(yaw),Math.sin(yaw));gl.uniform2f(g.mu.tilt,Math.sin(pitch),Math.cos(pitch));gl.uniform1f(g.mu.depthRange,range);gl.uniform3fv(g.mu.material,cadMaterial().map(x=>x/255));gl.drawArrays(gl.TRIANGLES,0,g.count);
+   gl.useProgram(g.meshProgram);gl.bindVertexArray(g.vao);gl.uniform2f(g.mu.center,st.cx,st.cy);gl.uniform2f(g.mu.shift,2*panX/w,-2*panY/h);gl.uniform2f(g.mu.ratio,2*scale/w,2*scale/h);gl.uniform2f(g.mu.angle,Math.cos(yaw),Math.sin(yaw));gl.uniform2f(g.mu.tilt,Math.sin(pitch),Math.cos(pitch));gl.uniform1f(g.mu.depthRange,range);gl.uniform3fv(g.mu.material,cadMaterial().map(x=>x/255));gl.drawArrays(gl.TRIANGLES,0,g.count);
    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.DEPTH_TEST);gl.clear(gl.COLOR_BUFFER_BIT);gl.useProgram(g.postProgram);gl.bindVertexArray(g.postVao);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,g.color);gl.uniform1i(g.pu.colors,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,g.depth);gl.uniform1i(g.pu.depths,1);gl.uniform2i(g.pu.size,W,H);gl.uniform1f(g.pu.depthRange,range);gl.uniform1f(g.pu.worldStep,3/Math.max(.001,scale*W/w));gl.uniform1i(g.pu.outlines,$('sharpedges').checked?1:0);gl.drawArrays(gl.TRIANGLES,0,3);gl.bindVertexArray(null);g.key=key;
   g.layerKey='';}else renderStats.hits++;
   // Perf: composite (with the soft shadow blur) into a cached 2D layer only when the GL image changed; frames just blit it.
